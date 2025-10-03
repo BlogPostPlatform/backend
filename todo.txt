@@ -1,0 +1,4 @@
+# General
+- setup django-unfold
+- .env & .envexample
+- connect to postgresql database
