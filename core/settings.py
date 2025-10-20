@@ -31,7 +31,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -50,6 +49,8 @@ INSTALLED_APPS = [
     'django_filters',
     'django_cleanup.apps.CleanupConfig',
     'silk',
+    'ckeditor',
+    'ckeditor_uploader',
 
     # local
     'apps.analytics',
@@ -350,9 +351,24 @@ LOGGING = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/2",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/3",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
     }
 }
+
+
+CKEDITOR_UPLOAD_PATH = "ckeditor_uploads/"
+CKEDITOR_ALLOW_NONIMAGE_FILES = True
+CKEDITOR_CONFIGS = {
+    "default": {
+        "toolbar": "full",
+        "height": 300,
+        "width": "100%",
+        "extraAllowedContent": "iframe[*];span[*];p[*];div[*];img[*]",
+    }
+}
+
+
+SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
