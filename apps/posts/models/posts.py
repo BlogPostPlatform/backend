@@ -13,6 +13,7 @@ class Post(BaseModel):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         PUBLISHED = "published", "Published"
+        SCHEDULED = "scheduled", "Scheduled"
         ARCHIVED = "archived", "Archived"
 
     title = models.CharField(max_length=150)

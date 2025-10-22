@@ -14,6 +14,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "cover_image",
             "created_at",
             "updated_at",
+            "status",
         ]
 
 

@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
@@ -9,6 +10,8 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from apps.common.pagination import PostPageNumberPagination
 from apps.posts.models import Post
 from apps.posts.serializers import PostDetailSerializer, PostListSerializer
+from apps.users.models import User
+from apps.users.models.user import Role
 
 
 @extend_schema(tags=["Client Posts"])
@@ -70,4 +73,10 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
     @action(methods=["get"], detail=False, url_path="homepage-statistics")
     def homepage_statistics(self, request):
         # serializer = self.get_serializer()
-        return Response({"Active Readers": "50000", "Articles": "4", "Writers": "100"})
+        articles = Post.objects.aggregate(
+            articles=Count("id", filter=Q(status=Post.Status.PUBLISHED)),
+        )["articles"]
+        writers = User.objects.aggregate(
+            writers=Count("id", filter=Q(role=Role.AUTHOR), distinct=True)
+        )["writers"]
+        return Response({"Active Readers": "50000", "Articles": articles, "Writers": writers})

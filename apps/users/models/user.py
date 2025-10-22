@@ -34,7 +34,7 @@ class User(AbstractUser):
 
     @cached_property
     def cached_group_names(self):
-        return set(self.groups.values_list("name", flat=True))
+        return list(self.groups.values_list("name", flat=True))
 
     class Meta:
         verbose_name = "User"

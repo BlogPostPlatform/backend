@@ -47,9 +47,3 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, "profile") and obj.profile and obj.profile.profile_photo:
             return obj.profile.profile_photo.url
         return None
-
-    # def get_role(self, obj):
-    #     groups = obj.groups.all()
-    #     if groups.exists():
-    #         return groups.first().name
-    #     return None

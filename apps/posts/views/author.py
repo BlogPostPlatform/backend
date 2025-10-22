@@ -36,11 +36,44 @@ class AuthorPostViewSet(ModelViewSet):
         if not file:
             return Response({"detail": "No image provided."}, status=400)
         img = PostImage.objects.create(post=post, image=file)
-        return Response({"id": img.pk, "url": img.image.url}, status=201)
+        url = request.build_absolute_uri(img.image.url)  # << absolute URL
+        return Response({"id": img.pk, "url": url}, status=201)
 
-    @action(methods=["get"], detail=False, url_path="mine")
+    @action(methods=["get"], detail=False, url_path="my-posts")
     def my_posts(self, request):
         qs = self.get_queryset().filter(author=request.user)
         page = self.paginate_queryset(qs)
         ser = PostListSerializer(page or qs, many=True)
         return self.get_paginated_response(ser.data) if page is not None else Response(ser.data)
+
+    @action(
+        methods=["post"],
+        detail=False,
+        url_path="upload-temp-image",
+        parser_classes=[MultiPartParser],
+    )
+    def upload_temp_image(self, request):
+        """
+        Accept an image upload before a Post exists.
+        Creates PostImage with post=None and returns {id, url}.
+        """
+        file = request.FILES.get("image")
+        if not file:
+            return Response({"detail": "No image provided."}, status=400)
+        img = PostImage.objects.create(post=None, image=file)
+        url = request.build_absolute_uri(img.image.url)  # << absolute URL
+        return Response({"id": img.pk, "url": url}, status=201)
+
+    @action(methods=["post"], detail=True, url_path="adopt-images")
+    def adopt_images(self, request, slug=None):
+        """
+        Attach previously uploaded PostImage records to this Post.
+        Body: { "image_ids": [1,2,3] }
+        """
+        post = self.get_object()
+        ids = request.data.get("image_ids") or []
+        if not isinstance(ids, list):
+            return Response({"detail": "image_ids must be a list."}, status=400)
+
+        updated = PostImage.objects.filter(id__in=ids, post__isnull=True).update(post=post)
+        return Response({"attached": updated}, status=200)
