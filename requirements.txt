@@ -15,6 +15,7 @@ Django==5.2.7
 django-celery-beat==2.8.1
 django-cleanup==9.0.0
 django-cors-headers==4.9.0
+django-ckeditor==6.7.3
 django-filter==25.2
 django-redis==6.0.0
 django-silk==5.4.3
@@ -57,3 +58,4 @@ vine==5.1.0
 virtualenv==20.34.0
 wcwidth==0.2.14
 whitenoise==6.11.0
+gevent==25.5.1
