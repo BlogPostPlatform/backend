@@ -17,6 +17,15 @@ class PostListSerializer(serializers.ModelSerializer):
             "status",
         ]
 
+    def get_cover_image(self, obj: Post):
+        if obj.cover_image:
+            context = self.context or {}
+            request = context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.cover_image.url)
+            return obj.cover_image.url
+        return None
+
 
 class PostDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -35,9 +44,17 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def get_cover_image(self, obj: Post):
+        if obj.cover_image:
+            context = self.context or {}
+            request = context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.cover_image.url)
+            return obj.cover_image.url
+        return None
+
 
 class PostWriteSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Post
         read_only_fields = ["slug", "author", "published_at"]

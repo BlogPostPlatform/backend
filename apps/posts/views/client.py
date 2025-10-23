@@ -80,3 +80,14 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
             writers=Count("id", filter=Q(role=Role.AUTHOR), distinct=True)
         )["writers"]
         return Response({"Active Readers": "50000", "Articles": articles, "Writers": writers})
+
+    @action(methods=["get"], detail=True, url_path="related-posts")
+    def related_posts(self, request, slug=None):
+        post: Post = self.get_object()
+        qs = (
+            post.category.posts.all()
+            .select_related("author", "category")
+            .order_by("-published_at")[:5]
+        )
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)

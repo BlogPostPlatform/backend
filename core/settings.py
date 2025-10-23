@@ -160,6 +160,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:5173",
+    "http://13.48.138.140:8006",
+    "http://13.48.138.140:8007",
     config("DOMAIN_URL"),
     config("FRONTEND_URL")
 ]
@@ -167,6 +169,8 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ORIGIN_WHITELIST = [
     "http://localhost:8080",
     "http://localhost:5173",
+    "http://13.48.138.140:8006",
+    "http://13.48.138.140:8007",
     config("DOMAIN_URL"),
     config("FRONTEND_URL")
 ]
@@ -174,6 +178,8 @@ CORS_ORIGIN_WHITELIST = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:5173",
+    "http://13.48.138.140:8006",
+    "http://13.48.138.140:8007",
     config("DOMAIN_URL"),
     config("FRONTEND_URL")
 ]
