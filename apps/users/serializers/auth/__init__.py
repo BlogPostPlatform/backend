@@ -3,3 +3,4 @@ from .verify_register_serializer import VerifyRegisterSerializer
 from .check_token_before_obtain_serializer import CheckTokenBeforeObtainSerializer
 from .logout_serializer import LogoutSerializer
 from .custom_refresh_token_serializer import CustomTokenRefreshSerializer
+from .google_login_serializer import GoogleLoginSerializer

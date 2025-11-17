@@ -13,7 +13,7 @@ class CustomUserManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
-        UserProfile.objects.create(user=user)
+        UserProfile.objects.get_or_create(user=user)
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):

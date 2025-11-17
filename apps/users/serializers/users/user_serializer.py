@@ -4,10 +4,8 @@ from apps.users.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    # role = serializers.SerializerMethodField(read_only=True)
     groups = serializers.SlugRelatedField(many=True, read_only=True, slug_field="name")
     status = serializers.SerializerMethodField()
-    profile_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -20,18 +18,10 @@ class UserSerializer(serializers.ModelSerializer):
             "date_joined",
             "last_login",
             "role",
-            "profile_photo",
             "groups",
             "status",
         ]
         extra_kwargs = {"role": {"required": False}}
-
-    def get_fields(self):
-        fields = super().get_fields()
-        include = self.context.get("include_profile_photo", False)
-        if not include:
-            fields.pop("profile_photo", None)
-        return fields
 
     def get_groups(self, obj: User):
         return obj.groups.values_list("name", flat=True)
@@ -42,8 +32,3 @@ class UserSerializer(serializers.ModelSerializer):
         elif obj.is_active and (obj.must_set_password or not obj.email_verified):
             return "Unauthorized"
         return "Deactivated"
-
-    def get_profile_photo(self, obj: User):
-        if hasattr(obj, "profile") and obj.profile and obj.profile.profile_photo:
-            return obj.profile.profile_photo.url
-        return None

@@ -46,7 +46,7 @@ class SetInitialPasswordSerializer(serializers.Serializer):
     def create(self, validated_data):
         user = validated_data["user"]
         new_password = validated_data["new_password"]
-
+        # validate_password(new_password)
         user.set_password(new_password)
         user.is_active = True
 

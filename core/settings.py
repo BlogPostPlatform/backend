@@ -14,6 +14,7 @@ from pathlib import Path
 from decouple import config
 import os
 
+
 REDIS_HOST = config("REDIS_HOST", default="127.0.0.1")
 REDIS_PORT = config("REDIS_PORT", default=6379)
 
@@ -33,6 +34,10 @@ ALLOWED_HOSTS = ['*']
 
 
 INSTALLED_APPS = [
+    'unfold',
+    'unfold.contrib.forms',
+    'unfold.contrib.filters',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -149,8 +154,9 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = os.path.join(BASE_DIR, "media/")
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -160,8 +166,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:5173",
-    "http://13.48.138.140:8006",
-    "http://13.48.138.140:8007",
+    "http://13.53.73.97:8006",
+    "http://13.53.73.97:8007",
     config("DOMAIN_URL"),
     config("FRONTEND_URL")
 ]
@@ -169,8 +175,8 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ORIGIN_WHITELIST = [
     "http://localhost:8080",
     "http://localhost:5173",
-    "http://13.48.138.140:8006",
-    "http://13.48.138.140:8007",
+    "http://13.53.73.97:8006",
+    "http://13.53.73.97:8007",
     config("DOMAIN_URL"),
     config("FRONTEND_URL")
 ]
@@ -178,12 +184,13 @@ CORS_ORIGIN_WHITELIST = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:5173",
-    "http://13.48.138.140:8006",
-    "http://13.48.138.140:8007",
+    "http://13.53.73.97:8006",
+    "http://13.53.73.97:8007",
     config("DOMAIN_URL"),
     config("FRONTEND_URL")
 ]
-
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CORS_ALLOW_CREDENTIALS = True
 AUTH_USER_MODEL = 'users.User'
 
@@ -378,3 +385,182 @@ CKEDITOR_CONFIGS = {
 
 
 SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
+
+
+
+# MUSOR😂😂😂
+from django.http import HttpRequest
+_original_get_host = HttpRequest.get_host
+
+def get_host_with_port(self):
+    host = _original_get_host(self)
+    if ":" not in host:
+        host = f"{host}:8006"
+    return host
+
+HttpRequest.get_host = get_host_with_port
+
+
+GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET')
+
+from django.templatetags.static import static
+# from django.urls import reverse_lazy
+UNFOLD = {
+    "SITE_TITLE": "Blog Post Admin",
+    "SITE_HEADER": "Blog Administration",
+    "SITE_URL": "/",
+    # "SITE_ICON": {
+    #     "light": lambda request: static("icon-light.svg"),  # Optional: add your icon
+    #     "dark": lambda request: static("icon-dark.svg"),    # Optional: add your icon
+    # },
+
+    # Color scheme
+    "COLORS": {
+        "primary": {
+            "50": "250 245 255",
+            "100": "243 232 255",
+            "200": "233 213 255",
+            "300": "216 180 254",
+            "400": "192 132 252",
+            "500": "168 85 247",
+            "600": "147 51 234",
+            "700": "126 34 206",
+            "800": "107 33 168",
+            "900": "88 28 135",
+            "950": "59 7 100",
+        },
+    },
+
+    # Sidebar configuration
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,  # Changed to False to use custom navigation
+        "navigation": [
+            {
+                "title": "Content Management",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Posts",
+                        "icon": "description",
+                        "link": "/admin/posts/post/",
+                    },
+                    {
+                        "title": "Categories",
+                        "icon": "folder",
+                        "link": "/admin/categories/category/",
+                    },
+                ],
+            },
+            {
+                "title": "User Management",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Users",
+                        "icon": "people",
+                        "link": "/admin/users/user/",
+                    },
+                    {
+                        "title": "Groups",
+                        "icon": "group",
+                        "link": "/admin/auth/group/",
+                    },
+                ],
+            },
+            {
+                "title": "System",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "View Site",
+                        "icon": "language",
+                        "link": "/",
+                    },
+                ],
+            },
+        ],
+    },
+
+    # Tab configuration - Use hardcoded URLs instead of reverse_lazy
+    "TABS": [
+        {
+            "models": [
+                "posts.post",
+            ],
+            "items": [
+                {
+                    "title": "All Posts",
+                    "link": "/admin/posts/post/",
+                    "icon": "description",
+                },
+                {
+                    "title": "Published",
+                    "link": "/admin/posts/post/?status__exact=published",
+                    "icon": "check_circle",
+                },
+                {
+                    "title": "Drafts",
+                    "link": "/admin/posts/post/?status__exact=draft",
+                    "icon": "edit",
+                },
+            ],
+        },
+        {
+            "models": [
+                "users.user",
+            ],
+            "items": [
+                {
+                    "title": "All Users",
+                    "link": "/admin/users/user/",
+                    "icon": "people",
+                },
+                {
+                    "title": "Active Users",
+                    "link": "/admin/users/user/?is_active__exact=1",
+                    "icon": "check_circle",
+                },
+                {
+                    "title": "Verified",
+                    "link": "/admin/users/user/?email_verified__exact=1",
+                    "icon": "verified",
+                },
+            ],
+        },
+    ],
+
+    # Extensions
+    "EXTENSIONS": {
+        "modeltranslation": {
+            "flags": {
+                "en": "🇬🇧",
+                "fr": "🇫🇷",
+                "nl": "🇳🇱",
+            },
+        },
+    },
+
+    # Environment badge
+    "ENVIRONMENT": "development",  # Change to "production", "staging", etc.
+
+    # Dashboard configuration
+    # "DASHBOARD_CALLBACK": "core.admin.dashboard_callback",  # Optional - comment out for now
+
+    # Login/Logout configuration
+    "LOGIN": {
+        # "image": lambda request: static("login-bg.jpg"),  # Optional background image
+        "redirect_after": "/admin/",
+    },
+
+
+    # Show language switcher
+    "SHOW_LANGUAGES": False,
+
+    # Show theme switcher
+    "SHOW_VIEW_ON_SITE": True,
+}

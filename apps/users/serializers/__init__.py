@@ -9,7 +9,8 @@ from .auth import (
     VerifyRegisterSerializer,
     CheckTokenBeforeObtainSerializer,
     LogoutSerializer,
-    CustomTokenRefreshSerializer
+    CustomTokenRefreshSerializer,
+    GoogleLoginSerializer
 )
 from .email_changes import (
     ConfirmEmailChangeSerializer,
