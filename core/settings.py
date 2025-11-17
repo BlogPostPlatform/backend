@@ -390,16 +390,16 @@ SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
 
 
 # MUSOR😂😂😂
-from django.http import HttpRequest
-_original_get_host = HttpRequest.get_host
-
-def get_host_with_port(self):
-    host = _original_get_host(self)
-    if ":" not in host:
-        host = f"{host}:8006"
-    return host
-
-HttpRequest.get_host = get_host_with_port
+# from django.http import HttpRequest
+# _original_get_host = HttpRequest.get_host
+#
+# def get_host_with_port(self):
+#     host = _original_get_host(self)
+#     if ":" not in host:
+#         host = f"{host}:8006"
+#     return host
+#
+# HttpRequest.get_host = get_host_with_port
 
 
 GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID')
