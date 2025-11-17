@@ -65,6 +65,7 @@ jobs:
 
       USE_TZ: True
       GOOGLE_OAUTH_CLIENT_ID: ''
+      GOOGLE_OAUTH_CLIENT_SECRET: ''
 
 
       FRONTEND_URL: "http://localhost:8080"
