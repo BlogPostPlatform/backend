@@ -406,17 +406,13 @@ GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID')
 GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET')
 
 from django.templatetags.static import static
-# from django.urls import reverse_lazy
+from django.urls import reverse
+
 UNFOLD = {
     "SITE_TITLE": "Blog Post Admin",
     "SITE_HEADER": "Blog Administration",
-    "SITE_URL": "/",
-    # "SITE_ICON": {
-    #     "light": lambda request: static("icon-light.svg"),  # Optional: add your icon
-    #     "dark": lambda request: static("icon-dark.svg"),    # Optional: add your icon
-    # },
+    "SITE_URL": lambda request: reverse("admin:index"),
 
-    # Color scheme
     "COLORS": {
         "primary": {
             "50": "250 245 255",
@@ -433,11 +429,14 @@ UNFOLD = {
         },
     },
 
-    # Sidebar configuration
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": False,  # Changed to False to use custom navigation
+        "show_all_applications": False,
+
         "navigation": [
+            # -------------------------
+            # Content Management
+            # -------------------------
             {
                 "title": "Content Management",
                 "separator": True,
@@ -446,15 +445,19 @@ UNFOLD = {
                     {
                         "title": "Posts",
                         "icon": "description",
-                        "link": "/admin/posts/post/",
+                        "link": lambda request: reverse("admin:posts_post_changelist"),
                     },
                     {
                         "title": "Categories",
                         "icon": "folder",
-                        "link": "/admin/categories/category/",
+                        "link": lambda request: reverse("admin:categories_category_changelist"),
                     },
                 ],
             },
+
+            # -------------------------
+            # User Management
+            # -------------------------
             {
                 "title": "User Management",
                 "separator": True,
@@ -463,15 +466,19 @@ UNFOLD = {
                     {
                         "title": "Users",
                         "icon": "people",
-                        "link": "/admin/users/user/",
+                        "link": lambda request: reverse("admin:users_user_changelist"),
                     },
                     {
                         "title": "Groups",
                         "icon": "group",
-                        "link": "/admin/auth/group/",
+                        "link": lambda request: reverse("admin:auth_group_changelist"),
                     },
                 ],
             },
+
+            # -------------------------
+            # System
+            # -------------------------
             {
                 "title": "System",
                 "separator": True,
@@ -480,62 +487,60 @@ UNFOLD = {
                     {
                         "title": "View Site",
                         "icon": "language",
-                        "link": "/",
+                        "link": lambda request: reverse("admin:index"),
                     },
                 ],
             },
         ],
     },
 
-    # Tab configuration - Use hardcoded URLs instead of reverse_lazy
+    # -----------------------------
+    # TAB CONFIGURATION
+    # -----------------------------
     "TABS": [
         {
-            "models": [
-                "posts.post",
-            ],
+            "models": ["posts.post"],
             "items": [
                 {
                     "title": "All Posts",
-                    "link": "/admin/posts/post/",
+                    "link": lambda request: reverse("admin:posts_post_changelist"),
                     "icon": "description",
                 },
                 {
                     "title": "Published",
-                    "link": "/admin/posts/post/?status__exact=published",
+                    "link": lambda request: reverse("admin:posts_post_changelist") + "?status__exact=published",
                     "icon": "check_circle",
                 },
                 {
                     "title": "Drafts",
-                    "link": "/admin/posts/post/?status__exact=draft",
+                    "link": lambda request: reverse("admin:posts_post_changelist") + "?status__exact=draft",
                     "icon": "edit",
                 },
             ],
         },
+
         {
-            "models": [
-                "users.user",
-            ],
+            "models": ["users.user"],
             "items": [
                 {
                     "title": "All Users",
-                    "link": "/admin/users/user/",
+                    "link": lambda request: reverse("admin:users_user_changelist"),
                     "icon": "people",
                 },
                 {
                     "title": "Active Users",
-                    "link": "/admin/users/user/?is_active__exact=1",
+                    "link": lambda request: reverse("admin:users_user_changelist") + "?is_active__exact=1",
                     "icon": "check_circle",
                 },
                 {
                     "title": "Verified",
-                    "link": "/admin/users/user/?email_verified__exact=1",
+                    "link": lambda request: reverse("admin:users_user_changelist") + "?email_verified__exact=1",
                     "icon": "verified",
                 },
             ],
         },
     ],
 
-    # Extensions
     "EXTENSIONS": {
         "modeltranslation": {
             "flags": {
@@ -546,22 +551,12 @@ UNFOLD = {
         },
     },
 
-    # Environment badge
-    "ENVIRONMENT": "development",  # Change to "production", "staging", etc.
+    "ENVIRONMENT": "development",
 
-    # Dashboard configuration
-    # "DASHBOARD_CALLBACK": "core.admin.dashboard_callback",  # Optional - comment out for now
-
-    # Login/Logout configuration
     "LOGIN": {
-        # "image": lambda request: static("login-bg.jpg"),  # Optional background image
-        "redirect_after": "/admin/",
+        "redirect_after": lambda request: reverse("admin:index"),
     },
 
-
-    # Show language switcher
     "SHOW_LANGUAGES": False,
-
-    # Show theme switcher
     "SHOW_VIEW_ON_SITE": True,
 }
