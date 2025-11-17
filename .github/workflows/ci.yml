@@ -64,16 +64,11 @@ jobs:
       EMAIL_HOST_PASSWORD: ""
 
       USE_TZ: True
-      GOOGLE_CLIENT_ID: ""
-      GOOGLE_CLIENT_SECRET: ""
-      GOOGLE_REDIRECT_URI: ""
-      GOOGLE_AUTH_URL: ""
-      GOOGLE_TOKEN_URL: ""
-      GOOGLE_USER_INFO_URL: ""
+      GOOGLE_OAUTH_CLIENT_ID: ''
+
 
       FRONTEND_URL: "http://localhost:8080"
       DOMAIN_URL: "https://example.com"
-      ENROL_LINK_URL: "https://example.com/enroll"
 
     steps:
       - uses: actions/checkout@v2
