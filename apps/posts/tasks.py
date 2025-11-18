@@ -16,8 +16,13 @@ def publish_scheduled_posts():
         status=Post.Status.SCHEDULED,
         published_at__lte=now,
     )
+    try:
+        count = posts.update(status=Post.Status.PUBLISHED)
+    except Exception as e:
+        logger.error(e)
+        return "Error occurred while publishing scheduled posts."
 
-    count = posts.update(status=Post.Status.PUBLISHED)
+    if count > 0:
+        logger.info("Published %d scheduled posts.", count)
 
-    logger.info("Published %d posts.", count)
     return f"Published {count} posts."

@@ -84,5 +84,4 @@ class PostWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Scheduled time to publish posts can't be in the past"
             )
-
         return attrs
