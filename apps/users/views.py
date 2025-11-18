@@ -257,3 +257,74 @@ class CheckTokenBeforeObtainView(TokenViewBase):
 @extend_schema(tags=["Auth"])
 class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
+
+
+"""
+server {
+    server_name hojimatov.uz www.hojimatov.uz;
+
+    # Redirect backend API
+    location /api/ {
+        proxy_pass http://127.0.0.1:8008;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Websocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # Backend static files
+    location /static/ {
+        alias /home/ubuntu/blog_post/backend/staticfiles/;
+    }
+
+    location /media/ {
+        alias /home/ubuntu/blog_post/backend/media/;
+    }
+
+    # Frontend
+    root /var/www/blog-post-frontend;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Security headers
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/hojimatov.uz/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/hojimatov.uz/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+
+}
+server {
+    if ($host = www.hojimatov.uz) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    if ($host = hojimatov.uz) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name hojimatov.uz www.hojimatov.uz;
+    return 404; # managed by Certbot
+
+
+
+
+}
+
+"""

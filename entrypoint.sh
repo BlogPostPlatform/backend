@@ -17,7 +17,7 @@ if [ "$ROLE" = "web" ]; then
     --timeout "${GUNICORN_TIMEOUT:-120}"
 elif [ "$ROLE" = "worker" ]; then
   echo "Starting Celery worker..."
-  exec celery -A core worker --pool=gevent -l info
+  exec celery -A core worker -l info
 elif [ "$ROLE" = "beat" ]; then
   echo "Starting Celery beat..."
   exec celery -A core beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler

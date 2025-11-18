@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'apps.common',
     'apps.posts',
     'apps.tags',
+    'apps.logs',
     'apps.users'
 ]
 
@@ -290,8 +291,12 @@ CELERY_WORKER_LOG_COLOR = True
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
 
 CELERY_BEAT_SCHEDULE = {
-
+    # "publish_scheduled_posts": {
+    #     "task": "apps.posts.tasks.publish_scheduled_posts",
+    #     "schedule": 5.0,
+    # }
 }
+
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Blog Website API',
@@ -388,20 +393,6 @@ CKEDITOR_CONFIGS = {
 SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
 
 
-
-# MUSOR😂😂😂
-# from django.http import HttpRequest
-# _original_get_host = HttpRequest.get_host
-#
-# def get_host_with_port(self):
-#     host = _original_get_host(self)
-#     if ":" not in host:
-#         host = f"{host}:8006"
-#     return host
-#
-# HttpRequest.get_host = get_host_with_port
-
-
 GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID')
 GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET')
 
@@ -412,6 +403,7 @@ UNFOLD = {
     "SITE_TITLE": "Blog Post Admin",
     "SITE_HEADER": "Blog Administration",
     "SITE_URL": lambda request: reverse("admin:index"),
+    "SITE_ICON": lambda request: static("icon.png"),
 
     "COLORS": {
         "primary": {

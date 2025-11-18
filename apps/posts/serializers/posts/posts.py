@@ -1,3 +1,6 @@
+import datetime
+
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.posts.models import Post
@@ -57,13 +60,29 @@ class PostDetailSerializer(serializers.ModelSerializer):
 class PostWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        read_only_fields = ["slug", "author", "published_at"]
+        read_only_fields = ["author"]
 
         fields = [
             "title",
             "category",
+            "slug",
             "short_description",
             "content",
             "cover_image",
             "status",
+            "published_at",
         ]
+
+    def validate(self, attrs):
+        status = attrs.get("status")
+        published_at: datetime.datetime | None = attrs.get("published_at", None)
+
+        if status == "scheduled" and not published_at:
+            raise serializers.ValidationError("You must specify a published at for scheduled posts")
+
+        if published_at and published_at < timezone.now():
+            raise serializers.ValidationError(
+                "Scheduled time to publish posts can't be in the past"
+            )
+
+        return attrs

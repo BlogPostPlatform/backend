@@ -77,3 +77,8 @@ class AuthorPostViewSet(ModelViewSet):
 
         updated = PostImage.objects.filter(id__in=ids, post__isnull=True).update(post=post)
         return Response({"attached": updated}, status=200)
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        # print(request.data)
+        return response
