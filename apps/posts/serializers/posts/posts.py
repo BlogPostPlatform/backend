@@ -1,4 +1,5 @@
 import datetime
+from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import serializers
@@ -6,7 +7,27 @@ from rest_framework import serializers
 from apps.posts.models import Post
 
 
+class AuthorSerializer(serializers.Serializer):
+    """Nested serializer for author info"""
+
+    id = serializers.IntegerField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    email = serializers.EmailField()
+
+    def to_representation(self, instance):
+        return {
+            "id": instance.id,
+            "first_name": instance.first_name,
+            "last_name": instance.last_name,
+            "full_name": f"{instance.first_name} {instance.last_name}".strip() or instance.email,
+            "email": instance.email,
+        }
+
+
 class PostListSerializer(serializers.ModelSerializer):
+    author = AuthorSerializer(read_only=True)
+
     class Meta:
         model = Post
         fields = [
@@ -17,6 +38,8 @@ class PostListSerializer(serializers.ModelSerializer):
             "cover_image",
             "created_at",
             "updated_at",
+            "author",
+            "published_at",
             "status",
         ]
 
@@ -31,6 +54,8 @@ class PostListSerializer(serializers.ModelSerializer):
 
 
 class PostDetailSerializer(serializers.ModelSerializer):
+    author = AuthorSerializer(read_only=True)
+
     class Meta:
         model = Post
         fields = [
@@ -79,8 +104,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
 
         if status == "scheduled" and not published_at:
             raise serializers.ValidationError("You must specify a published at for scheduled posts")
-
-        if published_at and published_at < timezone.now():
+        if published_at and published_at + timedelta(minutes=5) < timezone.now():
             raise serializers.ValidationError(
                 "Scheduled time to publish posts can't be in the past"
             )

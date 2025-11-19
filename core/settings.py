@@ -294,6 +294,10 @@ CELERY_BEAT_SCHEDULE = {
 
 }
 
+SILKY_IGNORE_PATHS = [
+    r'^static/',
+    r'^media/',
+]
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Blog Website API',

@@ -10,8 +10,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from apps.common.pagination import PostPageNumberPagination
 from apps.posts.models import Post
 from apps.posts.serializers import PostDetailSerializer, PostListSerializer
-from apps.users.models import User
-from apps.users.models.user import Role
+from apps.users.models.user import Role, User
 
 
 @extend_schema(tags=["Client Posts"])
@@ -23,6 +22,30 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
     search_fields = ["title", "short_description"]
     ordering_fields = ["published_at", "created_at"]
     pagination_class = PostPageNumberPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        base = (
+            Post.objects.select_related("author", "category")
+            .prefetch_related("images")
+            .order_by("-published_at")
+        )
+
+        if user.is_anonymous:
+            return base.filter(status=Post.Status.PUBLISHED)
+
+        if user.role == Role.ADMIN:
+            return base
+
+        elif user.role == Role.AUTHOR:
+            return base.filter(Q(author=user) | Q(status=Post.Status.PUBLISHED))
+
+        return base.filter(status=Post.Status.PUBLISHED)
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return PostDetailSerializer
+        return PostListSerializer
 
     def paginate_queryset(self, queryset):
         if self.action == "list":
@@ -39,18 +62,6 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-    def get_queryset(self):
-        return (
-            Post.published.select_related("author", "category")
-            .prefetch_related("images")
-            .order_by("-published_at")
-        )
-
-    def get_serializer_class(self):
-        if self.action == "retrieve":
-            return PostDetailSerializer
-        return PostListSerializer
 
     @action(methods=["get"], detail=False, url_path="latest-posts")
     def latest_posts(self, request):
@@ -86,8 +97,9 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         post: Post = self.get_object()
         qs = (
             post.category.posts.all()
+            .exclude(slug=post.slug)
             .select_related("author", "category")
-            .order_by("-published_at")[:5]
+            .order_by("-published_at")[:3]
         )
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
