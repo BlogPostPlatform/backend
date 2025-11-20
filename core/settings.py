@@ -14,7 +14,6 @@ from pathlib import Path
 from decouple import config
 import os
 
-
 REDIS_HOST = config("REDIS_HOST", default="127.0.0.1")
 REDIS_PORT = config("REDIS_PORT", default=6379)
 
@@ -31,7 +30,6 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
 
 INSTALLED_APPS = [
     'unfold',
@@ -163,7 +161,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:5173",
@@ -225,7 +222,6 @@ else:
         "rest_framework.renderers.JSONRenderer"
     ]
 
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=60),
@@ -255,8 +251,6 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
-
-
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
 )
@@ -265,9 +259,6 @@ EMAIL_PORT = config("EMAIL_PORT", default=587)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="email@example.com")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="password")
-
-
-
 
 CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/2"
 CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/2"
@@ -287,6 +278,9 @@ CELERY_TASK_CREATE_MISSING_QUEUES = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_LOG_COLOR = True
+CELERYD_HIJACK_ROOT_LOGGER = False
+CELERYD_LOG_COLOR = False
+CELERY_TASK_SEND_SENT_EVENT = False
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
 
@@ -298,6 +292,8 @@ SILKY_IGNORE_PATHS = [
     r'^static/',
     r'^media/',
 ]
+SILKY_PYTHON_PROFILER_BINARY = False
+SILKY_WARNINGS = False
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Blog Website API',
@@ -318,9 +314,6 @@ SPECTACULAR_SETTINGS = {
         }
     },
 }
-
-
-
 
 LOGGING = {
     "version": 1,
@@ -360,11 +353,65 @@ LOGGING = {
     },
 
     "loggers": {
+        "silk": {
+            "handlers": [],
+            "level": "CRITICAL",
+            "propagate": False,
+        },
         "django.request": {
             "handlers": ["console", "file", "db"],
             "level": "ERROR",
             "propagate": False,
         },
+
+        # Silence Celery worker INFO spam
+        "celery": {
+            "handlers": [],
+            "level": "WARNING",
+            "propagate": False,
+        },
+
+        # Silence Celery worker strategy spam
+        "celery.worker.strategy": {
+            "handlers": [],
+            "level": "WARNING",
+            "propagate": False,
+        },
+
+        # Silence Celery trace spam
+        "celery.app.trace": {
+            "handlers": [],
+            "level": "ERROR",  # trace logs are extremely spammy
+            "propagate": False,
+        },
+
+        # Silence Celery beat spam
+        "celery.beat": {
+            "handlers": [],
+            "level": "WARNING",
+            "propagate": False,
+        },
+
+        # Silence Kombu (Celery's messaging layer)
+        "kombu": {
+            "handlers": [],
+            "level": "WARNING",
+            "propagate": False,
+        },
+
+        # Silence AMQP logs
+        "amqp": {
+            "handlers": [],
+            "level": "WARNING",
+            "propagate": False,
+        },
+
+        "apps.posts.tasks": {
+            "handlers": ["console", "file", "db"],
+            "level": "INFO",
+            "propagate": False,
+        },
+
     },
 }
 
@@ -378,7 +425,6 @@ CACHES = {
     }
 }
 
-
 CKEDITOR_UPLOAD_PATH = "ckeditor_uploads/"
 CKEDITOR_ALLOW_NONIMAGE_FILES = True
 CKEDITOR_CONFIGS = {
@@ -390,9 +436,7 @@ CKEDITOR_CONFIGS = {
     }
 }
 
-
 SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
-
 
 GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID')
 GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET')
@@ -501,12 +545,14 @@ UNFOLD = {
                 },
                 {
                     "title": "Published",
-                    "link": lambda request: reverse("admin:posts_post_changelist") + "?status__exact=published",
+                    "link": lambda request: reverse(
+                        "admin:posts_post_changelist") + "?status__exact=published",
                     "icon": "check_circle",
                 },
                 {
                     "title": "Drafts",
-                    "link": lambda request: reverse("admin:posts_post_changelist") + "?status__exact=draft",
+                    "link": lambda request: reverse(
+                        "admin:posts_post_changelist") + "?status__exact=draft",
                     "icon": "edit",
                 },
             ],
@@ -522,12 +568,14 @@ UNFOLD = {
                 },
                 {
                     "title": "Active Users",
-                    "link": lambda request: reverse("admin:users_user_changelist") + "?is_active__exact=1",
+                    "link": lambda request: reverse(
+                        "admin:users_user_changelist") + "?is_active__exact=1",
                     "icon": "check_circle",
                 },
                 {
                     "title": "Verified",
-                    "link": lambda request: reverse("admin:users_user_changelist") + "?email_verified__exact=1",
+                    "link": lambda request: reverse(
+                        "admin:users_user_changelist") + "?email_verified__exact=1",
                     "icon": "verified",
                 },
             ],
