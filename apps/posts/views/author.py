@@ -9,7 +9,7 @@ from apps.posts.models import Post, PostImage
 from apps.posts.serializers import PostDetailSerializer, PostListSerializer, PostWriteSerializer
 
 
-@extend_schema(tags=["Author Posts"])
+@extend_schema(tags=["Posts"])
 class AuthorPostViewSet(ModelViewSet):
     permission_classes = [IsAuthorOrAdmin]
     lookup_field = "slug"
@@ -77,8 +77,3 @@ class AuthorPostViewSet(ModelViewSet):
 
         updated = PostImage.objects.filter(id__in=ids, post__isnull=True).update(post=post)
         return Response({"attached": updated}, status=200)
-
-    def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        # print(request.data)
-        return response

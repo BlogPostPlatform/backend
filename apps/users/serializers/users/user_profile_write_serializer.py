@@ -27,6 +27,7 @@ class UserProfileWriteSerializer(serializers.ModelSerializer):
             "birth_date": {"required": False},
             "middle_name": {"required": False},
             "profile_photo": {"required": False},
+            "last_name": {"required": False},
         }
 
     def validate(self, attrs):

@@ -13,7 +13,7 @@ from apps.posts.serializers import PostDetailSerializer, PostListSerializer
 from apps.users.models.user import Role, User
 
 
-@extend_schema(tags=["Client Posts"])
+@extend_schema(tags=["Posts"])
 class ClientPostViewSet(ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
     lookup_field = "slug"

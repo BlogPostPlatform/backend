@@ -31,6 +31,7 @@ django-unfold==0.71.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.28.0
+drf-nested-routers==0.95.0
 filelock==3.19.1
 gevent==25.5.1
 google-auth==2.43.0
