@@ -61,9 +61,9 @@ INSTALLED_APPS = [
     'apps.categories',
     'apps.comments',
     'apps.common',
+    'apps.logs',
     'apps.posts',
     'apps.tags',
-    'apps.logs',
     'apps.users'
 ]
 

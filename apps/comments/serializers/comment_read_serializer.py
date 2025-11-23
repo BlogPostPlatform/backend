@@ -35,9 +35,15 @@ class CommentReadSerializer(serializers.ModelSerializer):
         return getattr(obj, "reply_count", obj.replies.count())
 
     def get_user_reaction(self, obj: Comment):
+        user_reactions = getattr(obj, "user_reactions", None)
+        if user_reactions:
+            return user_reactions[0].reaction
+
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return None
+
+        # fallback
         reaction = obj.reactions.filter(user=request.user).first()
         return reaction.reaction if reaction else None
 
