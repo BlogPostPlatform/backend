@@ -3,8 +3,6 @@ from django.db import models
 from apps.common.models import BaseModel
 from apps.users.models import User
 
-from .posts import Post
-
 
 class ReactionType(BaseModel):
     name = models.CharField(max_length=100)
@@ -21,7 +19,7 @@ class ReactionType(BaseModel):
 
 class Reaction(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reacted_posts")
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="reacted_by")
+    post = models.ForeignKey("posts.Post", on_delete=models.CASCADE, related_name="reacted_by")
     type = models.ForeignKey(ReactionType, on_delete=models.CASCADE, related_name="reactions")
 
     def __str__(self):

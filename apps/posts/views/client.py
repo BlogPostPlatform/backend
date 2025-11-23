@@ -1,13 +1,16 @@
 from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
+from apps.bookmarks.models import Bookmark
 from apps.common.pagination import PostPageNumberPagination
+from apps.favourites.models import Favourite
 from apps.posts.models import Post
 from apps.posts.serializers import PostDetailSerializer, PostListSerializer
 from apps.users.models.user import Role, User
@@ -15,7 +18,6 @@ from apps.users.models.user import Role, User
 
 @extend_schema(tags=["Posts"])
 class ClientPostViewSet(ReadOnlyModelViewSet):
-    permission_classes = [AllowAny]
     lookup_field = "slug"
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["category__name"]
@@ -46,6 +48,11 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         if self.action == "retrieve":
             return PostDetailSerializer
         return PostListSerializer
+
+    def get_permissions(self):
+        if self.action in ["favourite", "bookmark"]:
+            return [IsAuthenticated()]
+        return [AllowAny()]
 
     def paginate_queryset(self, queryset):
         if self.action == "list":
@@ -103,3 +110,32 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         )
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+
+    @action(methods=["post"], detail=True)
+    def favourite(self, request, slug=None):
+        post: Post = self.get_object()
+        user = request.user
+
+        Favourite.objects.get_or_create(user=user, post=post)
+        return Response({"detail": "Post favorited."}, status=status.HTTP_201_CREATED)
+
+    @favourite.mapping.delete
+    def remove_favourite(self, request, slug=None):
+        post: Post = self.get_object()
+        user = request.user
+
+        count = Favourite.objects.filter(user=user, post=post).delete()
+        print(count[0])
+        return Response({"detail": "Favourite removed."}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def bookmark(self, request, slug=None):
+        post = self.get_object()
+        Bookmark.objects.get_or_create(user=request.user, post=post)
+        return Response({"detail": "Bookmarked"}, status=201)
+
+    @bookmark.mapping.delete
+    def remove_bookmark(self, request, slug=None):
+        post = self.get_object()
+        Bookmark.objects.filter(user=request.user, post=post).delete()
+        return Response(status=204)

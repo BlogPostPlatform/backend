@@ -7,6 +7,7 @@ from apps.common.utils.utils import generate_unique_slug
 from apps.users.models import User
 
 from .managers import PublishedPostManager
+from .reactions import ReactionType
 
 
 class Post(BaseModel):
@@ -32,6 +33,9 @@ class Post(BaseModel):
         max_length=12, choices=Status.choices, default=Status.DRAFT, db_index=True
     )
     published_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    allowed_reactions = models.ManyToManyField(
+        ReactionType, blank=True, related_name="posts_allowed"
+    )
 
     published = PublishedPostManager()
     objects = models.Manager()

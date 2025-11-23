@@ -1,7 +1,9 @@
 from django.urls import include, path
 
 urlpatterns = [
-    path("category/", include("apps.categories.urls")),
-    path("posts/", include("apps.posts.urls")),
     path("accounts/", include("apps.users.urls")),
+    path("bookmarks/", include("apps.bookmarks.urls")),
+    path("category/", include("apps.categories.urls")),
+    path("favourites/", include("apps.favourites.urls")),
+    path("posts/", include("apps.posts.urls")),
 ]
