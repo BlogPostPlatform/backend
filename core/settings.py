@@ -342,7 +342,7 @@ LOGGING = {
         },
 
         "console": {
-            "level": "ERROR",
+            "level": "WARNING",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },

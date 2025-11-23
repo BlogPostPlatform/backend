@@ -1,10 +1,11 @@
 import datetime
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.posts.models import Post
+from apps.posts.models import Post, ReactionType
 
 
 class AuthorSerializer(serializers.Serializer):
@@ -55,6 +56,9 @@ class PostListSerializer(serializers.ModelSerializer):
 
 class PostDetailSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
+    allowed_reactions = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=ReactionType.objects.all(), required=False
+    )
 
     class Meta:
         model = Post
@@ -70,6 +74,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
             "updated_at",
+            "allowed_reactions",
         ]
 
     def get_cover_image(self, obj: Post):
@@ -83,6 +88,10 @@ class PostDetailSerializer(serializers.ModelSerializer):
 
 
 class PostWriteSerializer(serializers.ModelSerializer):
+    allowed_reactions = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=ReactionType.objects.all(), required=False
+    )
+
     class Meta:
         model = Post
         read_only_fields = ["author"]
@@ -96,6 +105,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "cover_image",
             "status",
             "published_at",
+            "allowed_reactions",
         ]
 
     def validate(self, attrs):
@@ -108,4 +118,28 @@ class PostWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Scheduled time to publish posts can't be in the past"
             )
+
+        allowed_reactions = attrs.get("allowed_reactions", [])
+        for reaction in allowed_reactions:
+            if not ReactionType.objects.filter(pk=reaction.pk).exists():
+                raise serializers.ValidationError("Reaction type does not exist")
+
         return attrs
+
+    def create(self, validated_data):
+        allowed_reactions = validated_data.pop("allowed_reactions", None)
+        with transaction.atomic():
+            instance = Post.objects.create(**validated_data)
+            if allowed_reactions:
+                instance.allowed_reactions.set(allowed_reactions)
+        return instance
+
+    def update(self, instance: Post, validated_data):
+        allowed_reactions = validated_data.pop("allowed_reactions", None)
+        for attr, val in validated_data.items():
+            setattr(instance, attr, val)
+        instance.save()
+        instance.allowed_reactions.clear()
+        if allowed_reactions is not None:
+            instance.allowed_reactions.set(allowed_reactions)
+        return instance

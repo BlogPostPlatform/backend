@@ -4,7 +4,7 @@ from django.utils.timezone import now
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import action
 
-from .models import Post, PostImage
+from .models import Post, PostImage, Reaction, ReactionType
 
 
 class PostImageInline(TabularInline):
@@ -227,6 +227,13 @@ class PostAdmin(ModelAdmin):
         return qs.select_related("author", "category").prefetch_related("images")
 
 
+@admin.register(Reaction)
+class ReactionAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(ReactionType)
+class ReactionTypeAdmin(admin.ModelAdmin):
+    pass
 # @admin.register(PostImage)
 # class PostImageAdmin(ModelAdmin):
 #     compressed_fields = True

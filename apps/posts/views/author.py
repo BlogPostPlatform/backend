@@ -5,8 +5,13 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from apps.common.permissions.base import IsAuthorOrAdmin
-from apps.posts.models import Post, PostImage
-from apps.posts.serializers import PostDetailSerializer, PostListSerializer, PostWriteSerializer
+from apps.posts.models import Post, PostImage, ReactionType
+from apps.posts.serializers import (
+    PostDetailSerializer,
+    PostListSerializer,
+    PostWriteSerializer,
+    ReactionTypeSerializer,
+)
 
 
 @extend_schema(tags=["Posts"])
@@ -24,6 +29,8 @@ class AuthorPostViewSet(ModelViewSet):
             return PostDetailSerializer
         if self.action in ["create", "update", "partial_update"]:
             return PostWriteSerializer
+        elif self.action == "list_available_reactions":
+            return ReactionTypeSerializer
         return PostListSerializer
 
     def perform_create(self, serializer):
@@ -77,3 +84,9 @@ class AuthorPostViewSet(ModelViewSet):
 
         updated = PostImage.objects.filter(id__in=ids, post__isnull=True).update(post=post)
         return Response({"attached": updated}, status=200)
+
+    @action(methods=["get"], detail=False, url_path="list-available-reactions")
+    def list_available_reactions(self, request):
+        qs = ReactionType.objects.all()
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)

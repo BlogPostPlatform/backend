@@ -12,7 +12,13 @@ class IsAdmin(BasePermission):
 
 class IsAuthorOrAdmin(BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_superuser or request.user.role == Role.AUTHOR
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        return user.is_superuser or user.role == Role.AUTHOR
 
     def has_object_permission(self, request, view, obj):
-        return request.user.is_superuser or obj.author == request.user
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        return user.is_superuser or obj.author == user
