@@ -4,6 +4,7 @@ from apps.categories.models import Category
 from apps.common.models import BaseModel
 from apps.common.utils.files import unique_image_path
 from apps.common.utils.utils import generate_unique_slug
+from apps.tags.models import Tag
 from apps.users.models import User
 
 from .managers import PublishedPostManager
@@ -36,6 +37,7 @@ class Post(BaseModel):
     allowed_reactions = models.ManyToManyField(
         ReactionType, blank=True, related_name="posts_allowed"
     )
+    tags = models.ManyToManyField(Tag, blank=True, related_name="posts")
 
     published = PublishedPostManager()
     objects = models.Manager()

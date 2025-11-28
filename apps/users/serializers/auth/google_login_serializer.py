@@ -31,7 +31,6 @@ class GoogleLoginSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         idinfo = validated_data["credential"]
-
         email = idinfo.get("email")
         if not email:
             logger.error("[GOOGLE_AUTH] No email in token payload")

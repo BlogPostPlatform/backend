@@ -1,4 +1,5 @@
 from django.db.models import Count, Q
+from django.http import HttpRequest
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -18,6 +19,7 @@ from apps.posts.serializers import (
     PostReactionsSerializer,
     ReactionPutSerializer,
 )
+from apps.tags.serializers import TagSerializer
 from apps.users.models.user import Role, User
 
 
@@ -34,7 +36,7 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         user = self.request.user
         base = (
             Post.objects.select_related("author", "category")
-            .prefetch_related("images", "allowed_reactions")
+            .prefetch_related("images", "allowed_reactions", "comments")
             .order_by("-published_at")
         )
 
@@ -56,6 +58,8 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
             return ReactionPutSerializer
         elif self.action in ["list_reactions", "remove_reaction"]:
             return PostReactionsSerializer
+        elif self.action == "tags":
+            return TagSerializer
         return PostListSerializer
 
     def get_permissions(self):
@@ -120,7 +124,8 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         return Response(serializer.data)
 
     @action(methods=["post"], detail=True)
-    def favourite(self, request, slug=None):
+    def favourite(self, request: HttpRequest, slug=None):
+        # print(request.META.get("HTTP_HOST"))
         post: Post = self.get_object()
         user = request.user
 
@@ -226,4 +231,11 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
             many=True,
             context={"request": request, "post": post, "user_reactions": user_reaction_ids},
         )
+        return Response(serializer.data)
+
+    @action(methods=["get"], detail=True)
+    def tags(self, request, slug=None):
+        post: Post = self.get_object()
+        tags = post.tags.all()
+        serializer = self.get_serializer(tags, many=True)
         return Response(serializer.data)

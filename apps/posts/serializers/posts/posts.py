@@ -6,6 +6,8 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.posts.models import Post, ReactionType
+from apps.tags.models import Tag
+from apps.tags.serializers import TagSerializer
 
 
 class AuthorSerializer(serializers.Serializer):
@@ -59,6 +61,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
     allowed_reactions = serializers.PrimaryKeyRelatedField(
         many=True, queryset=ReactionType.objects.all(), required=False
     )
+    tags = TagSerializer(many=True, read_only=True)
 
     class Meta:
         model = Post
@@ -75,6 +78,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "allowed_reactions",
+            "tags",
         ]
 
     def get_cover_image(self, obj: Post):
@@ -91,6 +95,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
     allowed_reactions = serializers.PrimaryKeyRelatedField(
         many=True, queryset=ReactionType.objects.all(), required=False
     )
+    tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all(), required=False)
 
     class Meta:
         model = Post
@@ -106,6 +111,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "status",
             "published_at",
             "allowed_reactions",
+            "tags",
         ]
 
     def validate(self, attrs):
@@ -128,18 +134,28 @@ class PostWriteSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         allowed_reactions = validated_data.pop("allowed_reactions", None)
+        tags = validated_data.pop("tags", None)
+
         with transaction.atomic():
             instance = Post.objects.create(**validated_data)
             if allowed_reactions:
                 instance.allowed_reactions.set(allowed_reactions)
+            if tags:
+                instance.tags.set(tags)
         return instance
 
     def update(self, instance: Post, validated_data):
         allowed_reactions = validated_data.pop("allowed_reactions", None)
+        tags = validated_data.pop("tags", None)
+
         for attr, val in validated_data.items():
             setattr(instance, attr, val)
         instance.save()
         instance.allowed_reactions.clear()
         if allowed_reactions is not None:
             instance.allowed_reactions.set(allowed_reactions)
+
+        if tags:
+            instance.tags.set(tags)
+
         return instance

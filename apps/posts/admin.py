@@ -71,11 +71,14 @@ class PostAdmin(ModelAdmin):
         "content_preview",
         "cover_preview"
     ]
-
+    filter_horizontal = ["tags"]
     fieldsets = (
         ("📝 Post Information", {
             "fields": ("title", "slug", "category", "author", "status"),
             "description": "Basic information about the post"
+        }),
+        ("🏷️ Tags", {
+            "fields": ("tags",),
         }),
         ("🎨 Content", {
             "fields": ("short_description", "content", "content_preview"),
@@ -230,6 +233,7 @@ class PostAdmin(ModelAdmin):
 @admin.register(Reaction)
 class ReactionAdmin(admin.ModelAdmin):
     pass
+
 
 @admin.register(ReactionType)
 class ReactionTypeAdmin(admin.ModelAdmin):

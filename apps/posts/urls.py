@@ -10,14 +10,10 @@ router = DefaultRouter()
 router.register("author", AuthorPostViewSet, basename="author")
 router.register("client", ClientPostViewSet, basename="client")
 
-author_router = NestedDefaultRouter(router, "author", lookup="post")
-author_router.register("comments", CommentViewSet, basename="author-comments")
-
 client_router = NestedDefaultRouter(router, "client", lookup="post")
 client_router.register("comments", CommentViewSet, basename="client-comments")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("", include(author_router.urls)),
     path("", include(client_router.urls)),
 ]
