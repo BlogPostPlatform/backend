@@ -26,7 +26,8 @@ jobs:
           port: '22'
           script: |
             set -e
-            cd /home/${{ secrets.SERVER_USER }}/blog_post/backend
+            #cd /home/${{ secrets.SERVER_USER }}/blog_post/backend
+            cd /home/ubuntu/blog_post/backend
 
             # Stash local changes if any
             if ! git diff-index --quiet HEAD --; then

@@ -15,6 +15,6 @@ class TagViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:
             return [AllowAny()]
-        elif self.action in ["create", "update", "partial_update"]:
+        elif self.action in ["create"]:
             return [IsAuthorOrAdmin()]
         return [IsAdmin()]

@@ -1,4 +1,3 @@
-import datetime
 from datetime import timedelta
 
 from django.db import transaction
@@ -79,6 +78,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "updated_at",
             "allowed_reactions",
             "tags",
+            "allow_comments",
+            "read_time",
         ]
 
     def get_cover_image(self, obj: Post):
@@ -92,15 +93,16 @@ class PostDetailSerializer(serializers.ModelSerializer):
 
 
 class PostWriteSerializer(serializers.ModelSerializer):
-    allowed_reactions = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=ReactionType.objects.all(), required=False
+    allowed_reactions = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), write_only=True, required=False
     )
-    tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all(), required=False)
+    tags = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), write_only=True, required=False
+    )
 
     class Meta:
         model = Post
         read_only_fields = ["author"]
-
         fields = [
             "title",
             "category",
@@ -112,11 +114,12 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "published_at",
             "allowed_reactions",
             "tags",
+            "allow_comments",
         ]
 
     def validate(self, attrs):
         status = attrs.get("status")
-        published_at: datetime.datetime | None = attrs.get("published_at", None)
+        published_at = attrs.get("published_at", None)
 
         if status == "scheduled" and not published_at:
             raise serializers.ValidationError("You must specify a published at for scheduled posts")
@@ -125,10 +128,29 @@ class PostWriteSerializer(serializers.ModelSerializer):
                 "Scheduled time to publish posts can't be in the past"
             )
 
-        allowed_reactions = attrs.get("allowed_reactions", [])
-        for reaction in allowed_reactions:
-            if not ReactionType.objects.filter(pk=reaction.pk).exists():
-                raise serializers.ValidationError("Reaction type does not exist")
+        # Validate allowed_reactions existence in ONE query
+        allowed = attrs.get("allowed_reactions")
+        if allowed:
+            allowed_ids = list(dict.fromkeys(int(i) for i in allowed))  # dedupe & ints
+            found = set(
+                ReactionType.objects.filter(pk__in=allowed_ids).values_list("pk", flat=True)
+            )
+            missing = set(allowed_ids) - found
+            if missing:
+                raise serializers.ValidationError(
+                    {"allowed_reactions": f"Not found: {sorted(missing)}"}
+                )
+            attrs["allowed_reactions"] = allowed_ids  # normalize to ints
+
+        # Same for tags
+        tags = attrs.get("tags")
+        if tags:
+            tag_ids = list(dict.fromkeys(int(i) for i in tags))
+            found = set(Tag.objects.filter(pk__in=tag_ids).values_list("pk", flat=True))
+            missing = set(tag_ids) - found
+            if missing:
+                raise serializers.ValidationError({"tags": f"Not found: {sorted(missing)}"})
+            attrs["tags"] = tag_ids
 
         return attrs
 
@@ -138,10 +160,13 @@ class PostWriteSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
             instance = Post.objects.create(**validated_data)
+
+            # Passing IDs to set() triggers Django's optimized path
             if allowed_reactions:
                 instance.allowed_reactions.set(allowed_reactions)
             if tags:
                 instance.tags.set(tags)
+
         return instance
 
     def update(self, instance: Post, validated_data):
@@ -151,11 +176,12 @@ class PostWriteSerializer(serializers.ModelSerializer):
         for attr, val in validated_data.items():
             setattr(instance, attr, val)
         instance.save()
-        instance.allowed_reactions.clear()
+
+        # IMPORTANT: only change m2m if client provided them
         if allowed_reactions is not None:
             instance.allowed_reactions.set(allowed_reactions)
 
-        if tags:
+        if tags is not None:
             instance.tags.set(tags)
 
         return instance

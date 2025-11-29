@@ -31,8 +31,8 @@ class CommentViewSet(ModelViewSet):
 
     def get_queryset(self):
         post_slug = self.kwargs.get("post_slug")
-        post = Post.objects.filter(slug=post_slug).first()
-        if not post:
+        post: Post = Post.objects.filter(slug=post_slug).first()
+        if not post or not post.allow_comments:
             return Comment.objects.none()
 
         reply_count_subquery = (

@@ -19,6 +19,8 @@ from apps.posts.serializers import (
     PostReactionsSerializer,
     ReactionPutSerializer,
 )
+from apps.posts.services import get_post_views, register_post_view
+from apps.posts.utils import get_viewer_id
 from apps.tags.serializers import TagSerializer
 from apps.users.models.user import Role, User
 
@@ -82,6 +84,23 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        response = super().retrieve(request, *args, **kwargs)
+        instance = self.get_object()
+        viewer_id, cookie_to_set = get_viewer_id(request)
+
+        register_post_view(instance.pk, viewer_id)
+
+        total, unique = get_post_views(instance.pk)
+        response.data["views_total"] = total
+        response.data["views_unique"] = unique
+
+        if cookie_to_set:
+            response.set_cookie(
+                "viewer_id", cookie_to_set, max_age=31536000, samesite="None", secure=True
+            )
+        return response
 
     @action(methods=["get"], detail=False, url_path="latest-posts")
     def latest_posts(self, request):

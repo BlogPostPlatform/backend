@@ -20,7 +20,11 @@ class AuthorPostViewSet(ModelViewSet):
     lookup_field = "slug"
 
     def get_queryset(self):
-        qs = Post.objects.all().select_related("author", "category").prefetch_related("images")
+        qs = (
+            Post.objects.all()
+            .select_related("author", "category")
+            .prefetch_related("images", "allowed_reactions", "tags")
+        )
         user = self.request.user
         return qs if user.is_superuser else qs.filter(author=user)
 
