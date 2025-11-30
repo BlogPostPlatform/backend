@@ -13,7 +13,9 @@ if [ "$ROLE" = "web" ]; then
   exec uvicorn core.asgi:application \
     --host 0.0.0.0 \
     --port "$PORT" \
-    --timeout-keep-alive "${UVICORN_TIMEOUT:-120}"
+    --ws websockets \
+    --timeout-keep-alive "${UVICORN_TIMEOUT:-120}" \
+    --proxy-headers
 elif [ "$ROLE" = "worker" ]; then
   echo "Starting Celery worker..."
   exec celery -A core worker -l info
