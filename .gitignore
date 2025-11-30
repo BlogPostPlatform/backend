@@ -256,3 +256,5 @@ cython_debug/
 .idea/
 .vscode/
 .firebase.json
+*.redis
+*.rdb

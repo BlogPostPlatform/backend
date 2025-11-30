@@ -10,7 +10,7 @@ if [ "$ROLE" = "web" ]; then
   echo "Collecting static files..."
   python3 manage.py collectstatic --noinput
   echo "Starting Gunicorn..."
-  exec gunicorn core.wsgi:application \
+  exec uvicorn core.asgi:application \
     --bind 0.0.0.0:$PORT \
     --workers "${GUNICORN_WORKERS:-4}" \
     --threads "${GUNICORN_THREADS:-2}" \

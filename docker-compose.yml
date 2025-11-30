@@ -12,6 +12,7 @@ services:
 
   web:
     build: .
+    entrypoint: ["sh", "-c", "chmod +x /app/entrypoint.sh || true; exec /app/entrypoint.sh"]
     volumes:
       - .:/app
       - ./staticfiles:/app/staticfiles

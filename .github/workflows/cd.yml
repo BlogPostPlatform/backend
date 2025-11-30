@@ -36,8 +36,8 @@ jobs:
             fi
 
             # Pull latest main
-            git fetch origin dev
-            git reset --hard origin/dev
+            git fetch origin
+            git reset --hard origin/main
 
             docker compose down --remove-orphans
             docker images --format "{{.Repository}} {{.ID}}" | grep 'blog-website' | awk '{print $2}' | xargs -r sudo docker rmi

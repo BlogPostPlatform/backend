@@ -2,7 +2,8 @@ from .users import (
     UserSerializer,
     AllUsersSerializerLight,
     UserProfileReadSerializer,
-    UserProfileWriteSerializer
+    UserProfileWriteSerializer,
+    PublicUserSerializer
 )
 from .auth import (
     RegisterSerializer,

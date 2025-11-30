@@ -32,6 +32,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
+    # 'daphne',
     'unfold',
     'unfold.contrib.forms',
     'unfold.contrib.filters',
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
 
     # 3rd-party
     "rest_framework",
+    'channels',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
@@ -63,6 +65,7 @@ INSTALLED_APPS = [
     'apps.common',
     'apps.favourites',
     'apps.logs',
+    'apps.notifications',
     'apps.posts',
     'apps.tags',
     'apps.users'
@@ -98,7 +101,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -432,6 +435,15 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
     }
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
+        },
+    },
 }
 
 CKEDITOR_UPLOAD_PATH = "ckeditor_uploads/"

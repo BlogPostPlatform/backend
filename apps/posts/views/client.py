@@ -144,7 +144,6 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
 
     @action(methods=["post"], detail=True)
     def favourite(self, request: HttpRequest, slug=None):
-        # print(request.META.get("HTTP_HOST"))
         post: Post = self.get_object()
         user = request.user
 
