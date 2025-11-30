@@ -10,7 +10,7 @@ if [ "$ROLE" = "web" ]; then
   echo "Collecting static files..."
   python3 manage.py collectstatic --noinput
   echo "Starting Uvicorn..."
-exec uvicorn core.asgi:application \
+  exec uvicorn core.asgi:application \
     --host 0.0.0.0 \
     --port "$PORT" \
     --timeout-keep-alive "${UVICORN_TIMEOUT:-120}"
