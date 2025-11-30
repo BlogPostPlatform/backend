@@ -9,12 +9,11 @@ if [ "$ROLE" = "web" ]; then
   python3 manage.py migrate --noinput
   echo "Collecting static files..."
   python3 manage.py collectstatic --noinput
-  echo "Starting Gunicorn..."
-  exec uvicorn core.asgi:application \
-    --bind 0.0.0.0:$PORT \
-    --workers "${GUNICORN_WORKERS:-4}" \
-    --threads "${GUNICORN_THREADS:-2}" \
-    --timeout "${GUNICORN_TIMEOUT:-120}"
+  echo "Starting Uvicorn..."
+exec uvicorn core.asgi:application \
+    --host 0.0.0.0 \
+    --port "$PORT" \
+    --timeout-keep-alive "${UVICORN_TIMEOUT:-120}"
 elif [ "$ROLE" = "worker" ]; then
   echo "Starting Celery worker..."
   exec celery -A core worker -l info
