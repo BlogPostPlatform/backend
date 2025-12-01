@@ -100,6 +100,10 @@ class PostWriteSerializer(serializers.ModelSerializer):
         child=serializers.IntegerField(min_value=1), write_only=True, required=False
     )
 
+    # Add flags for clearing
+    clear_allowed_reactions = serializers.BooleanField(write_only=True, required=False)
+    clear_tags = serializers.BooleanField(write_only=True, required=False)
+
     class Meta:
         model = Post
         read_only_fields = ["author"]
@@ -115,6 +119,8 @@ class PostWriteSerializer(serializers.ModelSerializer):
             "allowed_reactions",
             "tags",
             "allow_comments",
+            "clear_allowed_reactions",  # NEW
+            "clear_tags",  # NEW
         ]
 
     def validate(self, attrs):
@@ -128,10 +134,15 @@ class PostWriteSerializer(serializers.ModelSerializer):
                 "Scheduled time to publish posts can't be in the past"
             )
 
-        # Validate allowed_reactions existence in ONE query
+        # Handle allowed_reactions
+        clear_reactions = attrs.pop("clear_allowed_reactions", False)
         allowed = attrs.get("allowed_reactions")
-        if allowed:
-            allowed_ids = list(dict.fromkeys(int(i) for i in allowed))  # dedupe & ints
+
+        if clear_reactions:
+            # Explicitly clearing reactions
+            attrs["allowed_reactions"] = []
+        elif allowed:
+            allowed_ids = list(dict.fromkeys(int(i) for i in allowed))
             found = set(
                 ReactionType.objects.filter(pk__in=allowed_ids).values_list("pk", flat=True)
             )
@@ -140,11 +151,15 @@ class PostWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"allowed_reactions": f"Not found: {sorted(missing)}"}
                 )
-            attrs["allowed_reactions"] = allowed_ids  # normalize to ints
+            attrs["allowed_reactions"] = allowed_ids
 
-        # Same for tags
+        # Handle tags
+        clear_tags_flag = attrs.pop("clear_tags", False)
         tags = attrs.get("tags")
-        if tags:
+
+        if clear_tags_flag:
+            attrs["tags"] = []
+        elif tags:
             tag_ids = list(dict.fromkeys(int(i) for i in tags))
             found = set(Tag.objects.filter(pk__in=tag_ids).values_list("pk", flat=True))
             missing = set(tag_ids) - found
@@ -161,10 +176,9 @@ class PostWriteSerializer(serializers.ModelSerializer):
         with transaction.atomic():
             instance = Post.objects.create(**validated_data)
 
-            # Passing IDs to set() triggers Django's optimized path
-            if allowed_reactions:
+            if allowed_reactions is not None:
                 instance.allowed_reactions.set(allowed_reactions)
-            if tags:
+            if tags is not None:
                 instance.tags.set(tags)
 
         return instance
@@ -177,7 +191,7 @@ class PostWriteSerializer(serializers.ModelSerializer):
             setattr(instance, attr, val)
         instance.save()
 
-        # IMPORTANT: only change m2m if client provided them
+        # Update m2m if provided (including empty arrays)
         if allowed_reactions is not None:
             instance.allowed_reactions.set(allowed_reactions)
 

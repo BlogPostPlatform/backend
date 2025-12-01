@@ -31,6 +31,10 @@ class ReactionPutSerializer(serializers.Serializer):
         if post is None or not user:
             raise serializers.ValidationError("Post or request context is required.")
 
+        allowed_ids = set(post.allowed_reactions.values_list("id", flat=True))
+        if not allowed_ids:  # Empty means no reactions allowed
+            raise serializers.ValidationError("Reactions are not allowed for this post.")
+
         if post.allowed_reactions.exists():
             allowed_ids = set(post.allowed_reactions.values_list("id", flat=True))
             if reaction_type_id not in allowed_ids:
