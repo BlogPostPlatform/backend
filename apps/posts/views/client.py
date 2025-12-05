@@ -1,10 +1,11 @@
+# from django.core.cache import cache
 from django.db.models import Count, Q
 from django.http import HttpRequest
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -12,6 +13,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from apps.bookmarks.models import Bookmark
 from apps.common.pagination import PostPageNumberPagination
 from apps.favourites.models import Favourite
+from apps.posts.filters import PostFilter
 from apps.posts.models import Post, Reaction, ReactionType
 from apps.posts.serializers import (
     PostDetailSerializer,
@@ -20,6 +22,7 @@ from apps.posts.serializers import (
     ReactionPutSerializer,
 )
 from apps.posts.services import get_post_views, register_post_view
+from apps.posts.trigram_search import TrigramSearchFilter
 from apps.posts.utils import get_viewer_id
 from apps.tags.serializers import TagSerializer
 from apps.users.models.user import Role, User
@@ -28,8 +31,10 @@ from apps.users.models.user import Role, User
 @extend_schema(tags=["Posts"])
 class ClientPostViewSet(ReadOnlyModelViewSet):
     lookup_field = "slug"
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ["category__name"]
+
+    filter_backends = [DjangoFilterBackend, TrigramSearchFilter, OrderingFilter]
+    filterset_class = PostFilter
+
     search_fields = ["title", "short_description"]
     ordering_fields = ["published_at", "created_at"]
     pagination_class = PostPageNumberPagination
@@ -38,7 +43,7 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         user = self.request.user
         base = (
             Post.objects.select_related("author", "category")
-            .prefetch_related("images", "allowed_reactions", "comments")
+            .prefetch_related("images", "allowed_reactions", "comments", "tags")
             .order_by("-published_at")
         )
 
@@ -230,7 +235,7 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         if post.allowed_reactions.exists():
             qs = post.allowed_reactions.all()
         else:
-            # If no specific reactions are set, all are allowed
+            # If no specific reactions are set, no reactions allowed
             qs = ReactionType.objects.none()
 
         qs = qs.annotate(count=Count("reactions", filter=Q(reactions__post=post))).order_by("id")

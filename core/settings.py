@@ -32,7 +32,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
-    # 'daphne',
+    'daphne',
     'unfold',
     'unfold.contrib.forms',
     'unfold.contrib.filters',
