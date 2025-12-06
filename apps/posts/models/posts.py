@@ -8,6 +8,7 @@ from apps.common.utils.utils import generate_unique_slug
 from apps.posts.utils import calculate_read_time, extract_text_from_json_content
 from apps.tags.models import Tag
 from apps.users.models import User
+from core.storages import PublicMediaStorage
 
 from .managers import PublishedPostManager
 from .reactions import ReactionType
@@ -31,7 +32,9 @@ class Post(BaseModel):
     content = models.JSONField(default=dict, blank=True, help_text="Raw JSON formatted content")
     text_content = models.TextField(null=True, blank=True, help_text="Text formatted content")
 
-    cover_image = models.ImageField(upload_to=unique_image_path, null=True, blank=True)
+    cover_image = models.ImageField(
+        storage=PublicMediaStorage(), upload_to=unique_image_path, null=True, blank=True
+    )
 
     status = models.CharField(
         max_length=12, choices=Status.choices, default=Status.DRAFT, db_index=True

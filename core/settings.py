@@ -24,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', "")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['*']
 
@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'silk',
     'ckeditor',
     'ckeditor_uploader',
+    'storages',
 
     # local
     'apps.analytics',
@@ -168,9 +169,28 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", "")
+AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", "")
+AWS_PUBLIC_BUCKET_NAME = config("AWS_PUBLIC_BUCKET_NAME", "")
+AWS_PRIVATE_BUCKET_NAME = config("AWS_PRIVATE_BUCKET_NAME", "")
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+
+AWS_DEFAULT_ACL = None
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = False  # generates signed URLS
+
+STORAGES = {
+    "default": {
+        "BACKEND": "core.storages.PublicMediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [

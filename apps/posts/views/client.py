@@ -1,4 +1,4 @@
-# from django.core.cache import cache
+from django.core.cache import cache
 from django.db.models import Count, Q
 from django.http import HttpRequest
 from django_filters.rest_framework import DjangoFilterBackend
@@ -43,7 +43,7 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         user = self.request.user
         base = (
             Post.objects.select_related("author", "category")
-            .prefetch_related("images", "allowed_reactions", "comments", "tags")
+            .prefetch_related("images", "allowed_reactions", "comments")
             .order_by("-published_at")
         )
 
@@ -79,27 +79,56 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
             return super().paginate_queryset(queryset)
         return None
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+    def _get_cache_key_for_list(self, request):
+        """Generate cache key for list endpoint including all filters"""
+        user_role = "anon" if request.user.is_anonymous else request.user.role
+        user_id = "anon" if request.user.is_anonymous else request.user.id
 
+        # Include query params in cache key
+        query_params = request.GET.urlencode()
+        return f"post_list:{user_role}:{user_id}:{query_params}"
+
+    def list(self, request, *args, **kwargs):
+        cache_key = self._get_cache_key_for_list(request)
+        cached_response = cache.get(cache_key)
+
+        if cached_response:
+            return Response(cached_response)
+
+        queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
+
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+            # Cache the entire paginated response structure
+            response = self.get_paginated_response(serializer.data)
+            cache.set(cache_key, response.data, 60 * 5)  # 5 minutes
+            return response
 
         serializer = self.get_serializer(queryset, many=True)
+        cache.set(cache_key, serializer.data, 60 * 5)
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        response = super().retrieve(request, *args, **kwargs)
         instance = self.get_object()
+        cache_key = f"post_detail:{instance.slug}"
+
+        # Get cached post data
+        post_data = cache.get(cache_key)
+
+        if not post_data:
+            serializer = self.get_serializer(instance)
+            post_data = serializer.data
+            cache.set(cache_key, post_data, 60 * 60 * 6)  # 6 hours
+
+        # Handle view tracking without DB hits
         viewer_id, cookie_to_set = get_viewer_id(request)
-
         register_post_view(instance.pk, viewer_id)
-
         total, unique = get_post_views(instance.pk)
-        response.data["views_total"] = total
-        response.data["views_unique"] = unique
+
+        # Merge cached data with view counts
+        response_data = {**post_data, "views_total": total, "views_unique": unique}
+        response = Response(response_data)
 
         if cookie_to_set:
             response.set_cookie(
@@ -109,35 +138,78 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
 
     @action(methods=["get"], detail=False, url_path="latest-posts")
     def latest_posts(self, request):
-        queryset = self.get_queryset().filter()[:10]
+        user_role = "anon" if request.user.is_anonymous else request.user.role
+        cache_key = f"latest_posts:{user_role}"
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        queryset = self.get_queryset()[:10]
         serializer = self.get_serializer(queryset, many=True)
+
+        cache.set(cache_key, serializer.data, 60 * 10)  # 10 minutes
         return Response(serializer.data)
 
     @action(methods=["get"], detail=False, url_path="trending-posts")
     def trending_posts(self, request):
-        queryset = self.get_queryset().filter()[:10]
+        user_role = "anon" if request.user.is_anonymous else request.user.role
+        cache_key = f"trending_posts:{user_role}"
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        queryset = self.get_queryset()[:10]
         serializer = self.get_serializer(queryset, many=True)
+
+        cache.set(cache_key, serializer.data, 60 * 15)  # 15 minutes
         return Response(serializer.data)
 
     @action(methods=["get"], detail=False, url_path="most-popular-posts")
     def most_popular_posts(self, request):
-        queryset = self.get_queryset().filter()[:10]
+        user_role = "anon" if request.user.is_anonymous else request.user.role
+        cache_key = f"most_popular_posts:{user_role}"
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        queryset = self.get_queryset()[:10]
         serializer = self.get_serializer(queryset, many=True)
+
+        cache.set(cache_key, serializer.data, 60 * 20)  # 20 minutes
         return Response(serializer.data)
 
     @action(methods=["get"], detail=False, url_path="homepage-statistics")
     def homepage_statistics(self, request):
+        cache_key = "homepage_statistics"
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         articles = Post.objects.aggregate(
             articles=Count("id", filter=Q(status=Post.Status.PUBLISHED)),
         )["articles"]
         writers = User.objects.aggregate(
             writers=Count("id", filter=Q(role=Role.AUTHOR), distinct=True)
         )["writers"]
-        return Response({"Active Readers": "50000", "Articles": articles, "Writers": writers})
+
+        data = {"Active Readers": "50000", "Articles": articles, "Writers": writers}
+
+        cache.set(cache_key, data, 60 * 30)  # 30 minutes
+        return Response(data)
 
     @action(methods=["get"], detail=True, url_path="related-posts")
     def related_posts(self, request, slug=None):
         post: Post = self.get_object()
+        cache_key = f"related_posts:{post.slug}"
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         qs = (
             post.category.posts.all()
             .exclude(slug=post.slug)
@@ -145,6 +217,8 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
             .order_by("-published_at")[:3]
         )
         serializer = self.get_serializer(qs, many=True)
+
+        cache.set(cache_key, serializer.data, 60 * 60)  # 1 hour
         return Response(serializer.data)
 
     @action(methods=["post"], detail=True)
@@ -184,6 +258,11 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        # Invalidate reaction cache for this post
+        cache.delete(f"post_reactions:{post.slug}:anon")
+        if request.user.is_authenticated:
+            cache.delete(f"post_reactions:{post.slug}:{request.user.id}")
+
         # Get allowed reactions for this post
         if post.allowed_reactions.exists():
             qs = post.allowed_reactions.all()
@@ -213,6 +292,11 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         post = self.get_object()
         Reaction.objects.filter(user=request.user, post=post).delete()
 
+        # Invalidate reaction cache for this post
+        cache.delete(f"post_reactions:{post.slug}:anon")
+        if request.user.is_authenticated:
+            cache.delete(f"post_reactions:{post.slug}:{request.user.id}")
+
         # Get allowed reactions for this post
         if post.allowed_reactions.exists():
             qs = post.allowed_reactions.all()
@@ -230,6 +314,12 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
     @action(methods=["get"], detail=True, url_path="list-reactions")
     def list_reactions(self, request, slug=None):
         post: Post = self.get_object()
+        user_id = request.user.id if request.user.is_authenticated else "anon"
+        cache_key = f"post_reactions:{post.slug}:{user_id}"
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
 
         # Get allowed reactions for this post
         if post.allowed_reactions.exists():
@@ -254,11 +344,21 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
             many=True,
             context={"request": request, "post": post, "user_reactions": user_reaction_ids},
         )
+
+        cache.set(cache_key, serializer.data, 60 * 5)  # 5 minutes
         return Response(serializer.data)
 
     @action(methods=["get"], detail=True)
     def tags(self, request, slug=None):
         post: Post = self.get_object()
+        cache_key = f"post_tags:{post.slug}"
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         tags = post.tags.all()
         serializer = self.get_serializer(tags, many=True)
+
+        cache.set(cache_key, serializer.data, 60 * 60 * 24)  # 24 hours
         return Response(serializer.data)
