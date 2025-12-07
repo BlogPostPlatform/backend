@@ -1,3 +1,5 @@
+import logging
+
 from django.core.exceptions import BadRequest
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from django.db.models.functions import Coalesce
@@ -14,6 +16,8 @@ from apps.comments.models import Comment, CommentEditHistory, CommentReaction
 from apps.comments.pagination import CommentPageNumberPagination
 from apps.comments.serializers import CommentCreateSerializer, CommentReadSerializer
 from apps.posts.models import Post
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Posts"])
@@ -104,9 +108,30 @@ class CommentViewSet(ModelViewSet):
         if not created:
             if reaction.reaction == reaction_type:
                 reaction.delete()
+                logger.info(
+                    "[COMMENT] Comment reaction removed - comment_id=%s, reaction_type=%s,"
+                    " user_id=%s",
+                    comment.pk,
+                    reaction_type,
+                    self.request.user.pk,
+                )
             else:
                 reaction.reaction = reaction_type
                 reaction.save(update_fields=["reaction"])
+                logger.info(
+                    "[COMMENT] Comment reaction updated - comment_id=%s, reaction_type=%s,"
+                    " user_id=%s",
+                    comment.pk,
+                    reaction_type,
+                    self.request.user.pk,
+                )
+        else:
+            logger.info(
+                "[COMMENT] Comment reaction added - comment_id=%s, reaction_type=%s," " user_id=%s",
+                comment.pk,
+                reaction_type,
+                self.request.user.pk,
+            )
 
         return Response({"success": True})
 
@@ -119,7 +144,13 @@ class CommentViewSet(ModelViewSet):
     def perform_create(self, serializer):
         post_slug = self.kwargs.get("post_slug")
         post = Post.objects.filter(slug=post_slug).first()
-        serializer.save(author=self.request.user, post=post)
+        instance = serializer.save(author=self.request.user, post=post)
+        logger.info(
+            "[COMMENT] Comment created - comment_id=%s, post_slug=%s, user_id=%s",
+            instance.pk,
+            post_slug,
+            self.request.user.pk,
+        )
 
     def partial_update(self, request, *args, **kwargs):
         comment = self.get_object()
@@ -136,6 +167,12 @@ class CommentViewSet(ModelViewSet):
         comment.is_edited = True
         comment.save(update_fields=["content", "is_edited", "updated_at"])
 
+        logger.info(
+            "[COMMENT] Comment updated - comment_id=%s, user_id=%s",
+            comment.pk,
+            request.user.pk,
+        )
+
         return Response(self.get_serializer(comment).data)
 
     def destroy(self, request, *args, **kwargs):
@@ -143,7 +180,13 @@ class CommentViewSet(ModelViewSet):
         if comment.author != request.user and not request.user.is_staff:
             raise PermissionDenied("You cannot delete this comment.")
 
+        comment_id = comment.pk
         comment.soft_delete()
+        logger.info(
+            "[COMMENT] Comment deleted - comment_id=%s, user_id=%s",
+            comment_id,
+            request.user.pk,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=["get"], detail=True, url_path="view-replies")

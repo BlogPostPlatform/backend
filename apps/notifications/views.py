@@ -1,3 +1,5 @@
+import logging
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -12,6 +14,8 @@ from .serializers import (
     DeleteCommentNotificationSerializer,
     MarkAsReadSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["CommentNotifications"])
@@ -59,7 +63,12 @@ class CommentNotificationViewSet(viewsets.GenericViewSet):
     def mark_as_read(self, request):
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        ser.save()
+        updated_count = ser.save()
+        logger.info(
+            "[NOTIFICATION] Notifications marked as read - user_id=%s, count=%s",
+            request.user.pk,
+            updated_count,
+        )
         return Response({"message": "success"})
 
     @action(methods=["post"], detail=False, url_path="delete-notifications")
@@ -70,6 +79,11 @@ class CommentNotificationViewSet(viewsets.GenericViewSet):
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)
         deleted_count = ser.save()
+        logger.info(
+            "[NOTIFICATION] Notifications deleted - user_id=%s, count=%s",
+            request.user.pk,
+            deleted_count,
+        )
         return Response(
             {"message": "success", "deleted_count": deleted_count}, status=status.HTTP_200_OK
         )

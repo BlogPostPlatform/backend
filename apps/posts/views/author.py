@@ -1,3 +1,5 @@
+import logging
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
@@ -12,6 +14,8 @@ from apps.posts.serializers import (
     PostWriteSerializer,
     ReactionTypeSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Posts"])
@@ -38,7 +42,34 @@ class AuthorPostViewSet(ModelViewSet):
         return PostListSerializer
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        instance = serializer.save(author=self.request.user)
+        logger.info(
+            "[POST] Post created - post_id=%s, slug=%s, author_id=%s",
+            instance.pk,
+            instance.slug,
+            self.request.user.pk,
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        logger.info(
+            "[POST] Post updated - post_id=%s, slug=%s, author_id=%s",
+            instance.pk,
+            instance.slug,
+            self.request.user.pk,
+        )
+
+    def perform_destroy(self, instance):
+        post_id = instance.pk
+        post_slug = instance.slug
+        author_id = instance.author.pk
+        instance.delete()
+        logger.info(
+            "[POST] Post deleted - post_id=%s, slug=%s, author_id=%s",
+            post_id,
+            post_slug,
+            author_id,
+        )
 
     @action(methods=["post"], detail=True, url_path="images", parser_classes=[MultiPartParser])
     def upload_image(self, request, slug=None):
@@ -48,6 +79,13 @@ class AuthorPostViewSet(ModelViewSet):
             return Response({"detail": "No image provided."}, status=400)
         img = PostImage.objects.create(post=post, image=file)
         url = request.build_absolute_uri(img.image.url)  # << absolute URL
+        logger.info(
+            "[POST] Post image uploaded - post_id=%s, slug=%s, image_id=%s, author_id=%s",
+            post.pk,
+            post.slug,
+            img.pk,
+            request.user.pk,
+        )
         return Response({"id": img.pk, "url": url}, status=201)
 
     @action(methods=["get"], detail=False, url_path="my-posts")
@@ -87,6 +125,13 @@ class AuthorPostViewSet(ModelViewSet):
             return Response({"detail": "image_ids must be a list."}, status=400)
 
         updated = PostImage.objects.filter(id__in=ids, post__isnull=True).update(post=post)
+        logger.info(
+            "[POST] Post images adopted - post_id=%s, slug=%s, images_count=%s, author_id=%s",
+            post.pk,
+            post.slug,
+            updated,
+            request.user.pk,
+        )
         return Response({"attached": updated}, status=200)
 
     @action(methods=["get"], detail=False, url_path="list-available-reactions")

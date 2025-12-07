@@ -1,3 +1,5 @@
+import logging
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -8,6 +10,8 @@ from apps.common.permissions.base import IsAdmin, IsAuthorOrAdmin
 from apps.posts.serializers import PostListSerializer
 from apps.tags.models import Tag
 from apps.tags.serializers import TagSerializer
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Tags"])
@@ -25,6 +29,20 @@ class TagViewSet(viewsets.ModelViewSet):
         if self.action == "posts":
             return PostListSerializer
         return TagSerializer
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        logger.info("[TAG] Tag created - tag_id=%s, name=%s", instance.pk, instance.name)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        logger.info("[TAG] Tag updated - tag_id=%s, name=%s", instance.pk, instance.name)
+
+    def perform_destroy(self, instance):
+        tag_id = instance.pk
+        tag_name = instance.name
+        instance.delete()
+        logger.info("[TAG] Tag deleted - tag_id=%s, name=%s", tag_id, tag_name)
 
     @action(methods=["get"], detail=True, url_path="posts")
     def posts(self, request, pk=None):
