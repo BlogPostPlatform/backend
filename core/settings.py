@@ -199,7 +199,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://13.53.73.97:8006",
     "http://13.53.73.97:8007",
     config("DOMAIN_URL"),
-    config("FRONTEND_URL")
+    config("DOMAIN_URL_1", default="http://127.0.0.1:8000"),
+    config("FRONTEND_URL"),
+    config("FRONTEND_URL_1", default="http://127.0.0.1:5173"),
 ]
 
 CORS_ORIGIN_WHITELIST = [
@@ -208,7 +210,9 @@ CORS_ORIGIN_WHITELIST = [
     "http://13.53.73.97:8006",
     "http://13.53.73.97:8007",
     config("DOMAIN_URL"),
-    config("FRONTEND_URL")
+    config("DOMAIN_URL_1", default="http://127.0.0.1:8000"),
+    config("FRONTEND_URL"),
+    config("FRONTEND_URL_1", default="http://127.0.0.1:5173"),
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -217,7 +221,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://13.53.73.97:8006",
     "http://13.53.73.97:8007",
     config("DOMAIN_URL"),
-    config("FRONTEND_URL")
+    config("DOMAIN_URL_1", default="http://127.0.0.1:8000"),
+    config("FRONTEND_URL"),
+    config("FRONTEND_URL_1", default="http://127.0.0.1:5173"),
 ]
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

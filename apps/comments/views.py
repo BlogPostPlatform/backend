@@ -3,8 +3,8 @@ import logging
 from django.core.exceptions import BadRequest
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from django.db.models.functions import Coalesce
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.filters import OrderingFilter
@@ -221,11 +221,23 @@ class CommentViewSet(ModelViewSet):
 
         return Response(serializer.data)
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="CommentReactionResponse",
+            fields={"success": serializers.BooleanField()},
+        )
+    )
     @action(methods=["post"], detail=True, url_path="like")
     def like(self, request, *args, **kwargs):
         comment = self._get_comment_or_400()
         return self._handle_reaction(comment, CommentReaction.CommentReactionType.LIKE)
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="CommentReactionResponse",
+            fields={"success": serializers.BooleanField()},
+        )
+    )
     @action(methods=["post"], detail=True, url_path="dislike")
     def dislike(self, request, *args, **kwargs):
         comment = self._get_comment_or_400()

@@ -1,7 +1,7 @@
 import logging
 
-from drf_spectacular.utils import extend_schema
-from rest_framework import status, viewsets
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -42,6 +42,7 @@ class CommentNotificationViewSet(viewsets.GenericViewSet):
             return super().paginate_queryset(queryset)
         return None
 
+    @extend_schema(responses=CommentNotificationReadSerializer(many=True))
     @action(methods=["get"], detail=False)
     def inbox(self, request):
         qs = self.get_queryset().filter(receiver=request.user).order_by("-created_at")
@@ -59,6 +60,13 @@ class CommentNotificationViewSet(viewsets.GenericViewSet):
         ser = self.get_serializer(qs, many=True, context=ctx)
         return Response(ser.data)
 
+    @extend_schema(
+        request=MarkAsReadSerializer,
+        responses=inline_serializer(
+            name="MarkNotificationsAsReadResponse",
+            fields={"message": serializers.CharField()},
+        ),
+    )
     @action(methods=["post"], detail=False, url_path="mark-as-read")
     def mark_as_read(self, request):
         ser = self.get_serializer(data=request.data)
@@ -71,6 +79,16 @@ class CommentNotificationViewSet(viewsets.GenericViewSet):
         )
         return Response({"message": "success"})
 
+    @extend_schema(
+        request=DeleteCommentNotificationSerializer,
+        responses=inline_serializer(
+            name="DeleteNotificationsResponse",
+            fields={
+                "message": serializers.CharField(),
+                "deleted_count": serializers.IntegerField(),
+            },
+        ),
+    )
     @action(methods=["post"], detail=False, url_path="delete-notifications")
     def delete_notifications(self, request):
         """

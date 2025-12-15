@@ -18,7 +18,7 @@ from apps.posts.serializers import (
 logger = logging.getLogger(__name__)
 
 
-@extend_schema(tags=["Posts"])
+@extend_schema(tags=["Manage Posts"])
 class AuthorPostViewSet(ModelViewSet):
     permission_classes = [IsAuthorOrAdmin]
     lookup_field = "slug"
@@ -71,6 +71,7 @@ class AuthorPostViewSet(ModelViewSet):
             author_id,
         )
 
+    @extend_schema(request={"slug": str}, responses={"id": int, "url": str})
     @action(methods=["post"], detail=True, url_path="images", parser_classes=[MultiPartParser])
     def upload_image(self, request, slug=None):
         post = self.get_object()
