@@ -6,6 +6,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from apps.common.pagination import PostPageNumberPagination
 from apps.common.permissions.base import IsAuthorOrAdmin
 from apps.posts.models import Post, PostImage, ReactionType
 from apps.posts.serializers import (
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 @extend_schema(tags=["Manage Posts"])
 class AuthorPostViewSet(ModelViewSet):
     permission_classes = [IsAuthorOrAdmin]
+    pagination_class = PostPageNumberPagination
     lookup_field = "slug"
 
     def get_queryset(self):
