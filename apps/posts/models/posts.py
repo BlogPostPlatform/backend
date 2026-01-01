@@ -27,7 +27,7 @@ class Post(BaseModel):
     )
     slug = models.SlugField(unique=True, blank=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="posts")
-    short_description = models.TextField()
+    short_description = models.TextField(null=True, blank=True)
 
     content = models.JSONField(default=dict, blank=True, help_text="Raw JSON formatted content")
     text_content = models.TextField(null=True, blank=True, help_text="Text formatted content")
