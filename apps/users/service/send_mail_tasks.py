@@ -1,3 +1,4 @@
+# flake8: noqa
 import logging
 
 from celery import shared_task
@@ -6,75 +7,136 @@ from django.core.mail import EmailMultiAlternatives
 
 logger = logging.getLogger(__name__)
 
+# Brand Colors (extracted from website)
+BRAND_COLORS = {
+    "cream_bg": "#F5F1ED",
+    "warm_white": "#FFFFFF",
+    "primary_brown": "#3D2817",
+    "accent_brown": "#7B5B3A",
+    "light_brown": "#E8DDD3",
+    "soft_beige": "#DFD3C7",
+    "text_dark": "#4A3428",
+    "text_muted": "#8B7355",
+}
+
+
+def get_email_base_template(title, content, footer_text=None):
+    """
+    Base template for all emails with unified brand design
+    """
+    footer = footer_text or "Agar bu xabarni siz so'ramagan bo'lsangiz, e'tibor bermang."
+
+    return f"""<!doctype html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+</head>
+<body style="margin:0;padding:0;background:{BRAND_COLORS['cream_bg']};font-family:'Georgia',serif;">
+    <div style="max-width:600px;margin:40px auto;padding:0 20px;">
+        <!-- Brand Header -->
+        <div style="text-align:center;margin-bottom:32px;">
+            <div style="display:inline-block;">
+                <h1 style="font-family:'Brush Script MT','Lucida Handwriting',cursive;font-size:32px;color:{BRAND_COLORS['primary_brown']};margin:0;font-weight:400;letter-spacing:1px;">
+                    Ҳафизахон Ҳайитметова
+                </h1>
+                <p style="font-size:11px;color:{BRAND_COLORS['text_muted']};margin:4px 0 0;letter-spacing:3px;text-transform:uppercase;">
+                    Kitoblar va maqolalar
+                </p>
+            </div>
+        </div>
+
+        <!-- Main Card -->
+        <div style="background:{BRAND_COLORS['warm_white']};border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(61,40,23,0.08);">
+            <!-- Content Header -->
+            <div style="background:linear-gradient(135deg, {BRAND_COLORS['light_brown']}, {BRAND_COLORS['soft_beige']});padding:32px 40px;border-bottom:3px solid {BRAND_COLORS['accent_brown']};">
+                <h2 style="color:{BRAND_COLORS['primary_brown']};margin:0;font-size:24px;font-weight:600;text-align:center;">
+                    {title}
+                </h2>
+            </div>
+
+            <!-- Main Content -->
+            <div style="padding:40px;">
+                {content}
+            </div>
+
+            <!-- Footer -->
+            <div style="background:{BRAND_COLORS['cream_bg']};padding:24px 40px;border-top:1px solid {BRAND_COLORS['soft_beige']};">
+                <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:{BRAND_COLORS['text_muted']};text-align:center;">
+                    {footer}
+                </p>
+                <p style="margin:0;font-size:12px;color:{BRAND_COLORS['text_muted']};text-align:center;">
+                    Yordam kerakmi? <a href="mailto:support@hafizaxon-hayitmetova.uz" style="color:{BRAND_COLORS['accent_brown']};text-decoration:none;font-weight:500;">Qo'llab-quvvatlash xizmati</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Bottom Footer -->
+        <div style="text-align:center;margin-top:24px;padding:0 20px;">
+            <p style="margin:0 0 8px;font-size:12px;color:{BRAND_COLORS['text_muted']};">
+                Muҳabbat bilan,<br>
+                <strong style="color:{BRAND_COLORS['primary_brown']};">Ҳафизахон Ҳайитметова jamoasi</strong>
+            </p>
+            <a href="https://hafizaxon-hayitmetova.uz/" style="display:inline-block;margin-top:12px;font-size:12px;color:{BRAND_COLORS['accent_brown']};text-decoration:none;">
+                hafizaxon-hayitmetova.uz
+            </a>
+        </div>
+    </div>
+</body>
+</html>"""
+
 
 @shared_task(bind=True, max_retries=3)
 def send_email_verification_task(self, receiver_email, first_name, code):
     """
-    Celery task to send email verification
+    Celery task to send email verification with unified brand design
     """
     try:
-        subject = "Email Verification Required"
-        text_content = f"""
-        Hello {first_name},
-
-        Thank you for signing up! To secure your account, please verify your email address.
-
-        Your 4-digit verification code is: {code}
-
-        Enter this code on our website to complete the verification process.
-
-        If you didn't request this, please ignore this email.
-
-        Best regards,
-        Your Company Team
-        """
-
+        subject = "E-mail manzilingizni tasdiqlang"
         from_email = config("EMAIL_HOST_USER")
         to = [receiver_email]
-        html_content = f"""
-        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #f9f9f9;
-        padding: 40px 20px;">
-          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px;
-          overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, #6D5DF6, #1E90FF); padding: 20px;
-            text-align: center;">
-              <h1 style="color: #fff; margin: 0; font-size: 28px;">Verify Your Email 🚀</h1>
-            </div>
-            <!-- Main Content -->
-            <div style="padding: 30px; text-align: center;">
-              <p style="color: #555; font-size: 16px; margin-bottom: 20px;">
-                You're just one step away from activating your account!
-              </p>
-              <div style="background: #F4F8FF; border-radius: 8px; padding: 15px 20px; display:
-              inline-block; margin-bottom: 20px;">
-                <span style="color: #1E90FF; font-size: 20px; font-weight: bold;">
-                  Your Verification Code:
-                </span>
-                <div style="color: #6D5DF6; font-size: 36px; font-weight: bold; margin-top: 10px;">
-                  {code}
-                </div>
-              </div>
-              <p style="color: #555; font-size: 16px; margin-bottom: 30px;">
-                Enter this code on our website to complete the verification process.
-              </p>
-            </div>
-            <!-- Footer -->
-            <div style="background: #f1f1f1; padding: 15px 20px; text-align: center;">
-              <p style="color: #888; font-size: 12px; margin: 0;">
-                If you didn't request this email, please ignore it.
-              </p>
-              <p style="color: #888; font-size: 12px; margin: 5px 0 0;">
-                Need help? <a href="mailto:support@yourcompany.com" style="color: #1E90FF;
-                text-decoration: none;">Contact our support team</a>.
-              </p>
-              <p style="color: #888; font-size: 12px; margin: 15px 0 0;">
-                Best regards,<br><strong>Your Company Team</strong>
-              </p>
-            </div>
-          </div>
-        </div>
+
+        text_content = f"""
+Assalomu alaykum {first_name},
+
+Ro'yxatdan o'tganingiz uchun rahmat! Hisobingizni himoya qilish uchun e-mail manzilingizni tasdiqlang.
+
+Sizning 4 raqamli tasdiqlash kodingiz: {code}
+
+Tasdiqlash jarayonini yakunlash uchun ushbu kodni veb-saytimizda kiriting.
+
+Agar buni siz so'ramagan bo'lsangiz, ushbu xabarni e'tiborsiz qoldiring.
+
+Muҳabbat bilan,
+Ҳафизахон Ҳайитметова jamoasi
         """
+
+        content = f"""
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Assalomu alaykum <strong style="color:{BRAND_COLORS['primary_brown']};">{first_name}</strong>,
+            </p>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Ro'yxatdan o'tganingiz uchun rahmat! Hisobingizni himoya qilish uchun
+                e-mail manzilingizni tasdiqlang.
+            </p>
+
+            <!-- Code Display -->
+            <div style="background:{BRAND_COLORS['cream_bg']};border:2px solid {BRAND_COLORS['accent_brown']};border-radius:12px;padding:28px;margin:32px 0;text-align:center;">
+                <p style="margin:0 0 12px;font-size:14px;color:{BRAND_COLORS['text_muted']};text-transform:uppercase;letter-spacing:2px;">
+                    Tasdiqlash kodi
+                </p>
+                <div style="font-family:'Courier New',monospace;font-size:40px;font-weight:700;color:{BRAND_COLORS['primary_brown']};letter-spacing:8px;">
+                    {code}
+                </div>
+            </div>
+
+            <p style="margin:0;font-size:14px;line-height:1.7;color:{BRAND_COLORS['text_dark']};text-align:center;">
+                Tasdiqlash jarayonini yakunlash uchun ushbu kodni veb-saytimizda kiriting.
+            </p>
+        """
+
+        html_content = get_email_base_template("E-mail tasdiqlash", content)
 
         email = EmailMultiAlternatives(subject, text_content, from_email, to)
         email.attach_alternative(html_content, "text/html")
@@ -91,63 +153,60 @@ def send_email_verification_task(self, receiver_email, first_name, code):
 @shared_task(bind=True, max_retries=3)
 def send_password_verification_task(self, email, first_name, code):
     """
-    Celery task to send password reset verification
+    Celery task to send password reset verification with unified brand design
     """
     try:
-        subject = "Password Reset Request"
+        subject = "Parolni tiklash so'rovi"
         to = [email]
         from_email = config("EMAIL_HOST_USER")
 
         text_content = f"""
-        Hello {first_name},
+Assalomu alaykum {first_name},
 
-        We received a request to reset the password for your account.
+Hisobingiz parolini tiklash so'rovini oldik.
 
-        Your 4-digit password reset code is: {code}
+Sizning 4 raqamli parol tiklash kodingiz: {code}
 
-        Enter this code on our website to set a new password.
+Yangi parol o'rnatish uchun ushbu kodni veb-saytimizda kiriting.
 
-        If you did not request a password reset, you can safely ignore this email
-        and no changes will be made.
+Agar parolni tiklashni siz so'ramagan bo'lsangiz, ushbu xabarni e'tiborsiz qoldiring.
 
-        For your security, do not share this code with anyone. If you need
-        assistance, please contact our support team.
-
-        Best regards,
-        Your Company Team
+Muҳabbat bilan,
+Ҳафизахон Ҳайитметова jamoasi
         """
 
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;
-        padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-          <h2 style="color: #333;">Hello, {first_name} 👋</h2>
-          <p style="color: #555; font-size: 16px;">
-            We received a request to reset the password for your account.
-          </p>
-          <p style="color: #333; font-size: 18px; font-weight: bold; text-align: center;">
-            Your 4-digit reset code: <span style="color: #007BFF;">{code}</span>
-          </p>
-          <p style="color: #555; font-size: 16px;">
-            Enter this code on our website to choose a new password for your account.
-          </p>
-          <p style="color: #777; font-size: 14px;">
-            <strong>Note:</strong> For security, do not share this code with anyone.
-            The code is valid for a limited time.
-          </p>
-          <p style="color: #777; font-size: 14px;">
-            If you did not request a password reset, you can safely ignore this email
-            and your password will remain unchanged.
-          </p>
-          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-          <p style="color: #888; font-size: 12px;">
-            Need help? Contact our <a href="https://yourcompany.example.com/support"
-            style="text-decoration: none;">Support Team</a>.
-          </p>
-          <p style="color: #888; font-size: 12px;">
-            Best regards,<br><strong>Your Company Team</strong>
-          </p>
-        </div>
+        content = f"""
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Assalomu alaykum <strong style="color:{BRAND_COLORS['primary_brown']};">{first_name}</strong>,
+            </p>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Hisobingiz parolini tiklash so'rovini oldik. Xavfsizligingiz uchun,
+                ushbu kodni faqat siz bilishingiz kerak.
+            </p>
+
+            <!-- Code Display -->
+            <div style="background:{BRAND_COLORS['cream_bg']};border:2px solid {BRAND_COLORS['accent_brown']};border-radius:12px;padding:28px;margin:32px 0;text-align:center;">
+                <p style="margin:0 0 12px;font-size:14px;color:{BRAND_COLORS['text_muted']};text-transform:uppercase;letter-spacing:2px;">
+                    Parol tiklash kodi
+                </p>
+                <div style="font-family:'Courier New',monospace;font-size:40px;font-weight:700;color:{BRAND_COLORS['primary_brown']};letter-spacing:8px;">
+                    {code}
+                </div>
+            </div>
+
+            <div style="background:#FFF8F0;border-left:4px solid {BRAND_COLORS['accent_brown']};padding:16px 20px;margin:24px 0;border-radius:4px;">
+                <p style="margin:0;font-size:13px;line-height:1.6;color:{BRAND_COLORS['text_dark']};">
+                    <strong>Xavfsizlik eslatmasi:</strong> Bu kodni hech kim bilan baham ko'rmang.
+                    Kod cheklangan vaqt davomida amal qiladi.
+                </p>
+            </div>
+
+            <p style="margin:0;font-size:14px;line-height:1.7;color:{BRAND_COLORS['text_dark']};text-align:center;">
+                Yangi parol o'rnatish uchun ushbu kodni veb-saytimizda kiriting.
+            </p>
         """
+
+        html_content = get_email_base_template("Parolni tiklash", content)
 
         email_msg = EmailMultiAlternatives(subject, text_content, from_email, to)
         email_msg.attach_alternative(html_content, "text/html")
@@ -164,72 +223,53 @@ def send_password_verification_task(self, email, first_name, code):
 @shared_task(bind=True, max_retries=3)
 def send_email_change_verification_task(self, receiver_new_email, first_name, code):
     """
-    Celery task to send email change verification
+    Celery task to send email change verification with unified brand design
     """
     try:
-        subject = "Confirm Your New Email Address"
+        subject = "Yangi e-mail manzilingizni tasdiqlang"
         from_email = config("EMAIL_HOST_USER")
         to = [receiver_new_email]
 
         text_content = f"""
-        Hello {first_name},
+Assalomu alaykum {first_name},
 
-        You've requested to change your email address associated with your account.
+Hisobingiz bilan bog'langan e-mail manzilingizni o'zgartirish so'rovini oldik.
 
-        To verify your new email, please enter the following 4-digit verification code:
+Yangi e-mailingizni tasdiqlash uchun quyidagi 4 raqamli kodni kiriting:
 
-        {code}
+{code}
 
-        If you didn't request this change, please ignore this email.
+Agar bu o'zgarishni siz so'ramagan bo'lsangiz, ushbu xabarni e'tiborsiz qoldiring.
 
-        Best regards,
-        Your Company Team
+Muҳabbat bilan,
+Ҳафизахон Ҳайитметова jamoasi
         """
 
-        html_content = f"""
-        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #f9f9f9;
-         padding: 40px 20px;">
-          <div style="max-width: 600px; margin: auto; background: #ffffff;
-           border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, #6D5DF6, #1E90FF);
-            padding: 20px; text-align: center;">
-              <h1 style="color: #fff; margin: 0; font-size: 24px;">
-              Confirm Your New Email Address</h1>
+        content = f"""
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Assalomu alaykum <strong style="color:{BRAND_COLORS['primary_brown']};">{first_name}</strong>,
+            </p>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Hisobingiz bilan bog'langan e-mail manzilingizni o'zgartirish so'rovini oldik.
+                Davom etish uchun quyidagi kodni kiriting.
+            </p>
+
+            <!-- Code Display -->
+            <div style="background:{BRAND_COLORS['cream_bg']};border:2px solid {BRAND_COLORS['accent_brown']};border-radius:12px;padding:28px;margin:32px 0;text-align:center;">
+                <p style="margin:0 0 12px;font-size:14px;color:{BRAND_COLORS['text_muted']};text-transform:uppercase;letter-spacing:2px;">
+                    Tasdiqlash kodi
+                </p>
+                <div style="font-family:'Courier New',monospace;font-size:40px;font-weight:700;color:{BRAND_COLORS['primary_brown']};letter-spacing:8px;">
+                    {code}
+                </div>
             </div>
-            <!-- Main Content -->
-            <div style="padding: 30px; text-align: center;">
-              <p style="color: #555; font-size: 16px; margin-bottom: 20px;">
-                You've requested to update your email address.
-                To proceed, please enter the following code:
-              </p>
-              <div style="background: #F4F8FF; border-radius: 8px;
-               padding: 15px 20px; display: inline-block; margin-bottom: 20px;">
-                <span style="color: #1E90FF; font-size: 20px; font-weight: bold;">
-                Your Verification Code:</span>
-                <div style="color: #6D5DF6; font-size: 36px; font-weight: bold;
-                 margin-top: 10px;">{code}</div>
-              </div>
-              <p style="color: #555; font-size: 16px; margin-bottom: 30px;">
-                Enter this code on our website to verify your new email.
-              </p>
-            </div>
-            <!-- Footer -->
-            <div style="background: #f1f1f1; padding: 15px 20px; text-align: center;">
-              <p style="color: #888; font-size: 12px; margin: 0;">
-                If you didn't request this email change, you can ignore this email.
-              </p>
-              <p style="color: #888; font-size: 12px; margin: 5px 0 0;">
-                Need help? <a href="mailto:support@yourcompany.com"
-                style="color: #1E90FF; text-decoration: none;">Contact our support team</a>.
-              </p>
-              <p style="color: #888; font-size: 12px; margin: 15px 0 0;">
-                Best regards,<br><strong>Your Company Team</strong>
-              </p>
-            </div>
-          </div>
-        </div>
+
+            <p style="margin:0;font-size:14px;line-height:1.7;color:{BRAND_COLORS['text_dark']};text-align:center;">
+                Yangi e-mail manzilingizni tasdiqlash uchun ushbu kodni veb-saytimizda kiriting.
+            </p>
         """
+
+        html_content = get_email_base_template("E-mail o'zgartirish", content)
 
         email = EmailMultiAlternatives(subject, text_content, from_email, to)
         email.attach_alternative(html_content, "text/html")
@@ -240,7 +280,7 @@ def send_email_change_verification_task(self, receiver_new_email, first_name, co
 
     except Exception as exc:
         logger.error(
-            f"Failed to send email change" f" verification to {receiver_new_email}: {str(exc)}"
+            f"Failed to send email change verification to {receiver_new_email}: {str(exc)}"
         )
         raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
 
@@ -248,106 +288,65 @@ def send_email_change_verification_task(self, receiver_new_email, first_name, co
 @shared_task(bind=True, max_retries=3)
 def send_activation_invite_task(self, email, first_name, uid, token):
     """
-    Celery task to send activation invite using EmailMultiAlternatives
+    Celery task to send activation invite with unified brand design
     """
     try:
-        subject = "Invitation to Join Our Platform"
+        subject = "Platformamizga xush kelibsiz"
         from_email = config("EMAIL_HOST_USER")
         frontend_url = config("FRONTEND_URL")
         activation_link = f"{frontend_url.rstrip('/')}/activate?uid={uid}&token={token}"
         to = [email]
 
-        # Plain-text fallback
-        text_content = f"""Hi {first_name},
+        text_content = f"""Assalomu alaykum {first_name},
 
-You've been invited to join our platform.
+Platformamizga qo'shilishingiz uchun taklifnoma oldingiz.
 
-To get started, activate your account:
+Boshlash uchun hisobingizni faollashtiring:
 {activation_link}
 
-If you weren’t expecting this invitation, you can safely ignore this email.
+Agar bu taklifnomani kutmagan bo'lsangiz, xabarni e'tiborsiz qoldiring.
 
-— Your Company Team
+— Ҳафизахон Ҳайитметова jamoasi
 """
 
-        # Minimal, elegant HTML (inline styles for email clients)
-        html_content = f"""<!doctype html>
-<html lang="en">
-  <body style="margin:0;padding:0;background:#F5F7FB;">
-    <div role="article" aria-roledescription="email" lang="en"
-     style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,
-     Arial,sans-serif;">
-      <!-- Preheader (hidden) -->
-      <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-        Activate your account and start using the platform.
-      </div>
-
-      <div style="max-width:640px;margin:0 auto;padding:24px 16px;">
-        <div style="background:#FFFFFF;border-radius:14px;overflow:hidden;
-        box-shadow:0 6px 24px rgba(0,0,0,0.06);">
-          <!-- Header -->
-          <div style="padding:28px 32px 0 32px;text-align:center;">
-            <div style="font-size:13px;color:#6B7280;letter-spacing:.02em;">You're invited</div>
-            <h1 style="margin:8px 0 0;font-size:24px;line-height:1.35;
-            color:#111827;font-weight:700;">Activate your account</h1>
-          </div>
-
-          <!-- Body -->
-          <div style="padding:22px 32px 32px 32px;">
-            <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#374151;">Hi
-{first_name},</p>
-            <p style="margin:0 0 18px;font-size:16px;line-height:1.6;color:#374151;">
-            You've been invited to join our platform. To get started, confirm your
-              email and set up your account.
+        content = f"""
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Assalomu alaykum <strong style="color:{BRAND_COLORS['primary_brown']};">{first_name}</strong>,
+            </p>
+            <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Platformamizga qo'shilishingiz uchun taklifnoma oldingiz. Boshlash uchun
+                e-mail manzilingizni tasdiqlang va hisobingizni sozlang.
             </p>
 
-            <p style="margin:26px 0;text-align:center;">
-              <a href="{activation_link}"
-                 style="display:inline-block;padding:14px 22px;border-radius:999px;
-                 background:#111827;color:#FFFFFF !important;text-decoration:none;
-                 font-weight:600;font-size:15px;line-height:1;">
-                 Activate account
-                               </a>
-            </p>
+            <!-- CTA Button -->
+            <div style="text-align:center;margin:36px 0;">
+                <a href="{activation_link}"
+                   style="display:inline-block;padding:16px 40px;background:{BRAND_COLORS['primary_brown']};color:#FFFFFF;text-decoration:none;border-radius:50px;font-size:16px;font-weight:600;letter-spacing:0.5px;box-shadow:0 4px 12px rgba(61,40,23,0.2);">
+                    Hisobni faollashtirish
+                </a>
+            </div>
 
-            <p style="margin:0 0 10px;font-size:13px;line-height:1.6;color:#6B7280;
-            text-align:center;">
-              Or paste this link into your browser:
-            </p>
-            <p style="margin:6px 0 0;font-size:13px;line-height:1.6;color:#111827;
-            text-align:center;word-break:break-word;">
-              <a href="{activation_link}" style="color:#111827;
-              text-decoration:underline;">{activation_link}</a>
-            </p>
-          </div>
+            <!-- Link Alternative -->
+            <div style="background:{BRAND_COLORS['cream_bg']};padding:20px;border-radius:8px;margin:32px 0;">
+                <p style="margin:0 0 8px;font-size:12px;color:{BRAND_COLORS['text_muted']};text-align:center;">
+                    Yoki ushbu havolani brauzeringizga nusxalang:
+                </p>
+                <p style="margin:0;font-size:12px;color:{BRAND_COLORS['accent_brown']};text-align:center;word-break:break-all;line-height:1.6;">
+                    <a href="{activation_link}" style="color:{BRAND_COLORS['accent_brown']};text-decoration:underline;">
+                        {activation_link}
+                    </a>
+                </p>
+            </div>
+        """
 
-          <!-- Footer -->
-          <div style="background:#F9FAFB;border-top:1px solid #F3F4F6;padding:16px 24px;
-          text-align:center;">
-            <p style="margin:0;font-size:12px;line-height:1.6;color:#9CA3AF;">
-              If you weren’t expecting this invitation, you can safely ignore this email.
-            </p>
-            <p style="margin:8px 0 0;font-size:12px;line-height:1.6;color:#9CA3AF;">
-              — Your Company Team
-            </p>
-          </div>
-        </div>
-
-        <div style="text-align:center;margin-top:12px;">
-          <a href="mailto:support@yourcompany.com" style="font-size:12px;color:#9CA3AF;
-          text-decoration:none;">
-            Need help? Contact support
-          </a>
-        </div>
-      </div>
-    </div>
-  </body>
-</html>"""
+        html_content = get_email_base_template(
+            "Hisobni faollashtirish",
+            content,
+            "Agar bu taklifnomani kutmagan bo'lsangiz, xabarni e'tiborsiz qoldiring.",
+        )
 
         email_msg = EmailMultiAlternatives(subject, text_content, from_email, to)
         email_msg.attach_alternative(html_content, "text/html")
-        # Optional helpful header
-        # email_msg.extra_headers = {"List-Unsubscribe": "<mailto:support@yourcompany.com>"}
         email_msg.send()
 
         logger.info(f"Activation invite sent successfully to {email}")
@@ -361,107 +360,65 @@ If you weren’t expecting this invitation, you can safely ignore this email.
 @shared_task(bind=True, max_retries=3)
 def send_otp_verification_task(self, email, first_name, otp_code):
     """
-    Celery task to send 2FA OTP verification code using EmailMultiAlternatives
+    Celery task to send 2FA OTP verification with unified brand design
     """
     try:
-        subject = "Your Login Verification Code"
+        subject = "Kirish tasdiqlash kodi"
         from_email = config("EMAIL_HOST_USER")
         to = [email]
 
-        text_content = f"""Hi {first_name},
+        text_content = f"""Assalomu alaykum {first_name},
 
-Your verification code is: {otp_code}
+Sizning tasdiqlash kodingiz: {otp_code}
 
-Enter this code to complete your login. This code will expire in 10 minutes.
+Kirishni yakunlash uchun ushbu kodni kiriting. Bu kod 10 daqiqa davomida amal qiladi.
 
-If you didn't request this code, please ignore this email and consider changing your password.
+Agar bu kodni siz so'ramagan bo'lsangiz, xabarni e'tiborsiz qoldiring va parolingizni o'zgartirishni o'ylab ko'ring.
 
-— Your Company Team
+— Ҳафизахон Ҳайитметова jamoasi
 """
 
-        html_content = f"""<!doctype html>
-<html lang="en">
-  <body style="margin:0;padding:0;background:#F5F7FB;">
-    <div role="article" aria-roledescription="email" lang="en"
-     style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,
-     Arial,sans-serif;">
-      <!-- Preheader (hidden) -->
-      <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-        Your verification code: {otp_code}
-      </div>
-
-      <div style="max-width:520px;margin:0 auto;padding:24px 16px;">
-        <div style="background:#FFFFFF;border-radius:16px;overflow:hidden;
-        box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-          <!-- Header -->
-          <div style="padding:32px 32px 0 32px;text-align:center;">
-            <div style="font-size:13px;color:#6366F1;letter-spacing:.03em;font-weight:500;">
-              VERIFICATION CODE
-            </div>
-            <h1 style="margin:8px 0 0;font-size:26px;line-height:1.3;
-            color:#111827;font-weight:700;">Complete your login</h1>
-          </div>
-
-          <!-- Body -->
-          <div style="padding:24px 32px 32px 32px;">
-            <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#374151;">Hi
-{first_name},</p>
-            <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#374151;">
-              Enter this verification code to complete your login:
+        content = f"""
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Assalomu alaykum <strong style="color:{BRAND_COLORS['primary_brown']};">{first_name}</strong>,
+            </p>
+            <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:{BRAND_COLORS['text_dark']};">
+                Kirishni yakunlash uchun quyidagi tasdiqlash kodini kiriting:
             </p>
 
             <!-- OTP Code Display -->
-            <div style="margin:32px 0;text-align:center;">
-              <div style="display:inline-block;background:#F8FAFC;border:2px solid #E2E8F0;
-              border-radius:12px;padding:20px 28px;font-family:ui-monospace,SFMono-Regular,
-              'SF Mono',Consolas,'Liberation Mono',Menlo,monospace;">
-                <div style="font-size:32px;font-weight:700;color:#111827;
-                letter-spacing:8px;line-height:1;">{otp_code}</div>
-              </div>
+            <div style="background:{BRAND_COLORS['cream_bg']};border:2px solid {BRAND_COLORS['accent_brown']};border-radius:12px;padding:32px;margin:32px 0;text-align:center;">
+                <p style="margin:0 0 16px;font-size:14px;color:{BRAND_COLORS['text_muted']};text-transform:uppercase;letter-spacing:2px;">
+                    Tasdiqlash kodi
+                </p>
+                <div style="font-family:'Courier New',monospace;font-size:48px;font-weight:700;color:{BRAND_COLORS['primary_brown']};letter-spacing:12px;line-height:1;">
+                    {otp_code}
+                </div>
             </div>
 
-            <p style="margin:24px 0 12px;font-size:14px;line-height:1.6;color:#6B7280;
-            text-align:center;">
-              This code will expire in <strong style="color:#374151;">10 minutes</strong>
+            <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:{BRAND_COLORS['text_dark']};text-align:center;">
+                Bu kod <strong style="color:{BRAND_COLORS['primary_brown']};">10 daqiqa</strong> davomida amal qiladi
             </p>
 
-            <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;
-            padding:12px 16px;margin:20px 0 0;">
-              <p style="margin:0;font-size:13px;line-height:1.5;color:#92400E;">
-                              <strong>Security tip:</strong> Never share this code with anyone.
-                Our team will never ask for your verification code.
-              </p>
+            <!-- Security Warning -->
+            <div style="background:#FFF8F0;border-left:4px solid {BRAND_COLORS['accent_brown']};padding:16px 20px;border-radius:4px;">
+                <p style="margin:0;font-size:13px;line-height:1.6;color:{BRAND_COLORS['text_dark']};">
+                    <strong>Xavfsizlik maslaҳati:</strong> Bu kodni hech kim bilan baham ko'rmang.
+                    Bizning jamoamiz hech qachon tasdiqlash kodini so'ramaydi.
+                </p>
             </div>
-          </div>
+        """
 
-          <!-- Footer -->
-          <div style="background:#F9FAFB;border-top:1px solid #F3F4F6;padding:20px 24px;
-          text-align:center;">
-            <p style="margin:0 0 6px;font-size:12px;line-height:1.6;color:#9CA3AF;">
-              If you didn't request this code, please ignore this email.
-            </p>
-            <p style="margin:0;font-size:12px;line-height:1.6;color:#9CA3AF;">
-              — Your Company Team
-            </p>
-          </div>
-        </div>
-
-        <div style="text-align:center;margin-top:16px;">
-          <a href="mailto:security@yourcompany.com" style="font-size:12px;color:#9CA3AF;
-          text-decoration:none;">
-            Security concerns? Contact us
-          </a>
-        </div>
-      </div>
-    </div>
-  </body>
-</html>"""
+        html_content = get_email_base_template(
+            "Kirish tasdiqlash",
+            content,
+            "Agar bu kodni siz so'ramagan bo'lsangiz, xabarni e'tiborsiz qoldiring.",
+        )
 
         email_msg = EmailMultiAlternatives(subject, text_content, from_email, to)
         email_msg.attach_alternative(html_content, "text/html")
-        # Security-focused headers
         email_msg.extra_headers = {
-            "X-Priority": "1",  # High priority for security codes
+            "X-Priority": "1",
             "X-MSMail-Priority": "High",
         }
         email_msg.send()
