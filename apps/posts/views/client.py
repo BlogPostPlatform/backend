@@ -230,7 +230,7 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
             return Response(cached_data)
 
         if not post.category:
-            return Post.objects.none()
+            return Response()
         qs = (
             post.category.posts.all()
             .exclude(slug=post.slug)
