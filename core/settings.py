@@ -54,8 +54,6 @@ INSTALLED_APPS = [
     'django_filters',
     'django_cleanup.apps.CleanupConfig',
     'silk',
-    'ckeditor',
-    'ckeditor_uploader',
     'storages',
 
     # local
@@ -470,21 +468,8 @@ CHANNEL_LAYERS = {
     },
 }
 
-CKEDITOR_UPLOAD_PATH = "ckeditor_uploads/"
-CKEDITOR_ALLOW_NONIMAGE_FILES = True
-CKEDITOR_CONFIGS = {
-    "default": {
-        "toolbar": "full",
-        "height": 300,
-        "width": "100%",
-        "extraAllowedContent": "iframe[*];span[*];p[*];div[*];img[*]",
-    }
-}
-
-SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
-
 GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID')
-GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET')
+# GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET')
 
 from django.templatetags.static import static
 from django.urls import reverse
@@ -519,6 +504,7 @@ UNFOLD = {
             # -------------------------
             # Content Management
             # -------------------------
+            # Content Management
             {
                 "title": "Content Management",
                 "separator": True,
@@ -533,6 +519,11 @@ UNFOLD = {
                         "title": "Categories",
                         "icon": "folder",
                         "link": lambda request: reverse("admin:categories_category_changelist"),
+                    },
+                    {
+                        "title": "Tags",
+                        "icon": "sell",  # material icon that actually makes sense
+                        "link": lambda request: reverse("admin:tags_tag_changelist"),
                     },
                 ],
             },
@@ -599,6 +590,16 @@ UNFOLD = {
                     "link": lambda request: reverse(
                         "admin:posts_post_changelist") + "?status__exact=draft",
                     "icon": "edit",
+                },
+            ],
+        },
+        {
+            "models": ["tags.tag"],
+            "items": [
+                {
+                    "title": "All Tags",
+                    "link": lambda request: reverse("admin:tags_tag_changelist"),
+                    "icon": "sell",
                 },
             ],
         },

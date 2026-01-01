@@ -26,6 +26,5 @@ urlpatterns = [
     path("api/silk", include("silk.urls", namespace="silk")),
     path("api/schema/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/docs/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/ckeditor/", include("ckeditor_uploader.urls")),
     path("api/", include("apps.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
