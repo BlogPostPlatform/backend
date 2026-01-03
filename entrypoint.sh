@@ -10,12 +10,13 @@ if [ "$ROLE" = "web" ]; then
   echo "Collecting static files..."
   python3 manage.py collectstatic --noinput
   echo "Starting Uvicorn..."
-  exec uvicorn core.asgi:application \
-    --host 0.0.0.0 \
-    --port "$PORT" \
-    --ws websockets \
-    --timeout-keep-alive "${UVICORN_TIMEOUT:-120}" \
-    --proxy-headers
+  exec gunicorn core.asgi:application \
+  -k uvicorn.workers.UvicornWorker \
+  --workers 1 \
+  --threads 1 \
+  --bind 0.0.0.0:$PORT \
+  --timeout 120
+
 elif [ "$ROLE" = "worker" ]; then
   echo "Starting Celery worker..."
   exec celery -A core worker -l info
