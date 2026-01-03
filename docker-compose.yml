@@ -3,16 +3,16 @@ name: blog-website
 services:
   redis:
     image: redis:7-alpine
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
 
   web:
     build: .
-    entrypoint: ["sh", "-c", "chmod +x /app/entrypoint.sh || true; exec /app/entrypoint.sh"]
+    entrypoint: [ "sh", "-c", "chmod +x /app/entrypoint.sh || true; exec /app/entrypoint.sh" ]
     init: true
     volumes:
       - .:/app
@@ -38,11 +38,13 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8008/api/check-health/" ]
+      test: [ "CMD-SHELL", "python - << 'EOF'\nimport urllib.request\nurllib.request.urlopen('http://localhost:8008/api/check-health/')\nEOF" ]
       interval: 30s
-      timeout: 3s
-      retries: 3
-    networks: [backend]
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+    networks: [ backend ]
 
   celery:
     build: .
@@ -67,7 +69,7 @@ services:
         condition: service_healthy
       web:
         condition: service_started
-    networks: [backend]
+    networks: [ backend ]
 
   celery-beat:
     build: .
@@ -93,7 +95,7 @@ services:
       web:
         condition: service_healthy
     restart: on-failure
-    networks: [backend]
+    networks: [ backend ]
 
 volumes:
   media_volume:
