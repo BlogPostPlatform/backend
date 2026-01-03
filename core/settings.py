@@ -216,7 +216,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://13.53.73.97:8006",
     "http://13.53.73.97:8007",
-    config("FRONTEND_URL"),
+    config("FRONTEND_URL", default="http://127.0.0.1:5173"),
     config("FRONTEND_URL_1", default="http://127.0.0.1:5173"),
     config("FRONTEND_URL_2", default="http://127.0.0.1:5173"),
 ]
