@@ -61,6 +61,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
         many=True, queryset=ReactionType.objects.all(), required=False
     )
     tags = TagSerializer(many=True, read_only=True)
+    # is_favorited = serializers.SerializerMethodField()
+    # is_bookmarked = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -80,6 +82,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "tags",
             "allow_comments",
             "read_time",
+            # 'is_favorited',
+            # 'is_bookmarked'
         ]
 
     def get_cover_image(self, obj: Post):
@@ -90,6 +94,24 @@ class PostDetailSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.cover_image.url)
             return obj.cover_image.url
         return None
+
+    # def get_is_favorited(self, obj: Post) -> bool:
+    #     context = self.context or {}
+    #     request = context.get("request")
+    #     user = request.user if request else None
+    #     if not user:
+    #         return False
+    #
+    #     return Favourite.objects.filter(user=user, post=obj).exists()
+    #
+    # def get_is_bookmarked(self, obj: Post) -> bool:
+    #     context = self.context or {}
+    #     request = context.get("request")
+    #     user = request.user if request else None
+    #     if not user:
+    #         return False
+    #
+    #     return Bookmark.objects.filter(user=user, post=obj).exists()
 
 
 class PostWriteSerializer(serializers.ModelSerializer):

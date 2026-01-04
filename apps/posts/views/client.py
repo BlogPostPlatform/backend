@@ -120,7 +120,6 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         instance = self.get_object()
         cache_key = f"post_detail:{instance.slug}"
 
-        # Get cached post data
         post_data = cache.get(cache_key)
 
         if not post_data:
@@ -131,13 +130,32 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         else:
             logger.debug("[CACHE] Post detail cache hit - key=%s", cache_key)
 
-        # Handle view tracking without DB hits
         viewer_id, cookie_to_set = get_viewer_id(request)
         register_post_view(instance.pk, viewer_id)
         total, unique = get_post_views(instance.pk)
 
-        # Merge cached data with view counts
-        response_data = {**post_data, "views_total": total, "views_unique": unique}
+        interaction_data = (
+            {
+                "is_favorited": Favourite.objects.filter(
+                    user=request.user, post_id=post_data["id"]
+                ).exists(),
+                "is_bookmarked": Bookmark.objects.filter(
+                    user=request.user, post_id=post_data["id"]
+                ).exists(),
+            }
+            if request.user.is_authenticated
+            else {
+                "is_favorited": False,
+                "is_bookmarked": False,
+            }
+        )
+
+        response_data = {
+            **post_data,
+            "interaction": interaction_data,
+            "views_total": total,
+            "views_unique": unique,
+        }
         response = Response(response_data)
 
         if cookie_to_set:

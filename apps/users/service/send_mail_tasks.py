@@ -6,7 +6,8 @@ from decouple import config
 from django.core.mail import EmailMultiAlternatives
 
 logger = logging.getLogger(__name__)
-
+TTL_SECONDS = config("TTL_SECONDS", cast=int, default=300)
+TTL_MINUTES = TTL_SECONDS // 60
 # Brand Colors (extracted from website)
 BRAND_COLORS = {
     "cream_bg": "#F5F1ED",
@@ -371,7 +372,7 @@ def send_otp_verification_task(self, email, first_name, otp_code):
 
 Sizning tasdiqlash kodingiz: {otp_code}
 
-Kirishni yakunlash uchun ushbu kodni kiriting. Bu kod 10 daqiqa davomida amal qiladi.
+Kirishni yakunlash uchun ushbu kodni kiriting. Bu kod {TTL_SECONDS} daqiqa davomida amal qiladi.
 
 Agar bu kodni siz so'ramagan bo'lsangiz, xabarni e'tiborsiz qoldiring va parolingizni o'zgartirishni o'ylab ko'ring.
 
@@ -397,7 +398,7 @@ Agar bu kodni siz so'ramagan bo'lsangiz, xabarni e'tiborsiz qoldiring va parolin
             </div>
 
             <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:{BRAND_COLORS['text_dark']};text-align:center;">
-                Bu kod <strong style="color:{BRAND_COLORS['primary_brown']};">10 daqiqa</strong> davomida amal qiladi
+                Bu kod <strong style="color:{BRAND_COLORS['primary_brown']};">{TTL_MINUTES} daqiqa</strong> davomida amal qiladi
             </p>
 
             <!-- Security Warning -->

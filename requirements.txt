@@ -29,12 +29,13 @@ django-js-asset==3.1.2
 django-redis==6.0.0
 django-silk==5.4.3
 django-storages==1.14.6
-django-stubs==5.2.5
-django-stubs-ext==5.2.5
+django-stubs==5.2.8
+django-stubs-ext==5.2.8
 django-timezone-field==7.1
 django-unfold==0.71.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
+djangorestframework-stubs==3.16.6
 drf-spectacular==0.28.0
 drf-nested-routers==0.95.0
 filelock==3.19.1
@@ -73,6 +74,7 @@ setuptools==80.9.0
 six==1.17.0
 sqlparse==0.5.3
 types-PyYAML==6.0.12.20250915
+types-requests==2.32.4.20250913
 typing_extensions==4.15.0
 tzdata==2025.2
 uritemplate==4.2.0
