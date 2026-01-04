@@ -26,6 +26,7 @@ class PostFilter(django_filters.FilterSet):
 
     category = CharFilter(field_name="category__name", lookup_expr="icontains")
     tags = CharInFilter(method="filter_tags")  # ?tags=python,django
+    tag = CharInFilter(method="filter_tags")  # ?tag=python,django
     author = CharFilter(method="filter_author")  # matches first_name or last_name (icontains)
     published = DateFromToRangeFilter(field_name="published_at")
     status = django_filters.CharFilter(field_name="status", lookup_expr="iexact")
@@ -35,12 +36,31 @@ class PostFilter(django_filters.FilterSet):
         fields = ["category", "tags", "author", "published", "status"]
 
     def filter_tags(self, queryset, name, value):
+        """
+        Accepts:
+          - "python,django" (string)
+          - ["python", "django"] (list)
+          - ["python,django", "flask"] (mixed)
+        """
         if not value:
             return queryset
-        print(value)
-        values = [v.strip() for v in value if v.strip()]
-        # Search by tag slug OR tag name
-        return queryset.filter(Q(tags__slug__in=values) | Q(tags__name__in=values))
+
+        # Normalize into flat list of token strings
+        tokens = []
+        if isinstance(value, (list, tuple)):
+            for item in value:
+                if not item:
+                    continue
+                # each item could be a comma-separated chunk
+                tokens += [t.strip() for t in str(item).split(",") if t.strip()]
+        else:
+            tokens = [t.strip() for t in str(value).split(",") if t.strip()]
+
+        if not tokens:
+            return queryset
+
+        # Filter by slug OR name; distinct() prevents duplicates caused by JOINs
+        return queryset.filter(Q(tags__slug__in=tokens) | Q(tags__name__in=tokens)).distinct()
 
     def filter_author(self, queryset, name, value):
         if not value:

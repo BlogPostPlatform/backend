@@ -60,6 +60,7 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         elif user.role == Role.AUTHOR:
             return base.filter(Q(author=user) | Q(status=Post.Status.PUBLISHED))
 
+        print(base)
         return base.filter(status=Post.Status.PUBLISHED)
 
     def get_serializer_class(self):

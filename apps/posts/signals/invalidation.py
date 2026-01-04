@@ -59,6 +59,7 @@ def post_tags_changed(sender, instance, action, **kwargs):
             instance.slug,
         )
         invalidate_post_cache(instance)
+        invalidate_post_list_caches()  # <--- add this
 
 
 @receiver(m2m_changed, sender=Post.allowed_reactions.through)

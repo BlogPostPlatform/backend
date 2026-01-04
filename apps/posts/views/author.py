@@ -94,6 +94,8 @@ class AuthorPostViewSet(ModelViewSet):
     @action(methods=["get"], detail=False, url_path="my-posts")
     def my_posts(self, request):
         qs = self.get_queryset().filter(author=request.user)
+        if status := self.request.query_params.get("status"):
+            qs = qs.filter(status=status)
         page = self.paginate_queryset(qs)
         ser = PostListSerializer(page or qs, many=True)
         return self.get_paginated_response(ser.data) if page is not None else Response(ser.data)
