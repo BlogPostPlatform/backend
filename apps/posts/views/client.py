@@ -46,7 +46,7 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
     def get_queryset(self):
         user = self.request.user
         base = (
-            Post.objects.select_related("author", "category")
+            Post.objects.select_related("author__profile", "category")
             .prefetch_related("images", "allowed_reactions", "comments")
             .order_by("-published_at")
         )

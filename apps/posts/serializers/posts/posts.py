@@ -10,21 +10,30 @@ from apps.tags.serializers import TagSerializer
 
 
 class AuthorSerializer(serializers.Serializer):
-    """Nested serializer for author info"""
-
     id = serializers.IntegerField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
     email = serializers.EmailField()
+    full_name = serializers.SerializerMethodField()
+    profile_photo = serializers.SerializerMethodField()
 
-    def to_representation(self, instance):
-        return {
-            "id": instance.id,
-            "first_name": instance.first_name,
-            "last_name": instance.last_name,
-            "full_name": f"{instance.first_name} {instance.last_name}".strip() or instance.email,
-            "email": instance.email,
-        }
+    def get_full_name(self, instance):
+        name = f"{instance.first_name} {instance.last_name}".strip()
+        return name or instance.email
+
+    def get_profile_photo(self, instance):
+        profile = getattr(instance, "profile", None)
+        if not profile:
+            return None
+
+        photo = profile.profile_photo
+        if not photo:
+            return None
+
+        try:
+            return photo.url
+        except Exception:
+            return None
 
 
 class PostListSerializer(serializers.ModelSerializer):
@@ -61,6 +70,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
         many=True, queryset=ReactionType.objects.all(), required=False
     )
     tags = TagSerializer(many=True, read_only=True)
+
     # is_favorited = serializers.SerializerMethodField()
     # is_bookmarked = serializers.SerializerMethodField()
 
