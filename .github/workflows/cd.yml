@@ -4,26 +4,25 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [dev]   # 🚨 THIS IS CRITICAL
 
 jobs:
   deploy:
     if: >
       github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'dev' &&
       github.actor != 'github-actions[bot]'
-
     runs-on: ubuntu-latest
 
     env:
       DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
 
     steps:
-      - name: Debug info (one-time sanity check)
+      - name: Debug info
         run: |
-          echo "Deploying commit: $DEPLOY_SHA"
-          echo "Triggered from branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Deploying SHA: $DEPLOY_SHA"
 
-      - name: Deploy to VPS via SSH
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -32,26 +31,11 @@ jobs:
           port: 22
           script: |
             set -e
-
             cd /home/ubuntu/blog_post/backend
 
-            echo "Fetching repository..."
             git fetch origin
-
-            echo "Resetting to tested commit..."
             git reset --hard $DEPLOY_SHA
 
-            echo "Stopping old containers..."
             docker compose down --remove-orphans
-
-#            echo "Cleaning old images..."
-#            docker images --format "{{.Repository}} {{.ID}}" \
-#              | grep 'blog-website' \
-#              | awk '{print $2}' \
-#              | xargs -r docker rmi
-#
-#            docker image prune -f
-
-            echo "Rebuilding and starting services..."
             docker compose build
             docker compose up -d

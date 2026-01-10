@@ -143,7 +143,9 @@ class CommentViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         post_slug = self.kwargs.get("post_slug")
-        post = Post.objects.filter(slug=post_slug).first()
+        post: Post = Post.objects.filter(slug=post_slug).first()
+        if not post.allow_comments:
+            raise PermissionDenied("You cannot create comment on this post.")
         instance = serializer.save(author=self.request.user, post=post)
         logger.info(
             "[COMMENT] Comment created - comment_id=%s, post_slug=%s, user_id=%s",

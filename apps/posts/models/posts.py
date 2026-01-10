@@ -5,7 +5,7 @@ from apps.categories.models import Category
 from apps.common.models import BaseModel
 from apps.common.utils.files import unique_image_path
 from apps.common.utils.utils import generate_unique_slug
-from apps.posts.utils import calculate_read_time, extract_text_from_json_content
+from apps.posts.utils import calculate_read_time, extract_readable_text
 from apps.tags.models import Tag
 from apps.users.models import User
 from core.storages import PublicMediaStorage
@@ -62,7 +62,13 @@ class Post(BaseModel):
 
     def save(self, *args, **kwargs):
         if self.content:
-            self.text_content = extract_text_from_json_content(self.content)
+            try:
+                self.text_content = extract_readable_text(self.content)
+            except Exception as e:
+                # Log but don't crash
+                print(f"Error extracting text for post {self.pk}: {e}")
+                self.text_content = ""
+
         if not self.slug:
             self.slug = generate_unique_slug(self.__class__, self.title, allow_unicode=True)
         try:
@@ -79,14 +85,19 @@ class Post(BaseModel):
     @property
     def read_time(self):
         cache_key = f"post:{self.pk}:read_time"
-        value = cache.get(cache_key)
+        cached = cache.get(cache_key)
 
-        if value is not None:
-            return value
+        if cached is not None:
+            return cached
 
         if not self.text_content:
             return 0
 
-        minutes = calculate_read_time(self.text_content)
+        try:
+            minutes = calculate_read_time(self.text_content)
+        except Exception:
+            minutes = 0
+
+        # Cache for 24 hours
         cache.set(cache_key, minutes, 60 * 60 * 24)
         return minutes
