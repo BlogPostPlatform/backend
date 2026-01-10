@@ -4,6 +4,10 @@ on:
   push:
     branches: [dev]
 
+concurrency:
+  group: cd-dev
+  cancel-in-progress: true
+
 permissions:
   actions: read
   contents: read
