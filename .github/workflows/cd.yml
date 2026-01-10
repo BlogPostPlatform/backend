@@ -4,34 +4,49 @@ on:
   push:
     branches: [dev]
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check CI status for this commit
+      - name: Wait for CI to complete
         uses: actions/github-script@v7
         with:
           script: |
-            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'ci.yml',
-              head_sha: context.sha,
-              status: 'completed'
-            });
+            const maxAttempts = 20;        // ~5 minutes total
+            const delayMs = 15000;         // 15s between checks
+            const delay = ms => new Promise(r => setTimeout(r, ms));
 
-            if (runs.workflow_runs.length === 0) {
-              core.setFailed('No CI run found for this commit');
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'ci.yml',
+                head_sha: context.sha,
+                status: 'completed'
+              });
+
+              if (data.workflow_runs.length > 0) {
+                const ciRun = data.workflow_runs[0];
+
+                if (ciRun.conclusion === 'success') {
+                  console.log('CI succeeded. Proceeding to deploy.');
+                  return;
+                }
+
+                throw new Error(`CI finished but failed: ${ciRun.conclusion}`);
+              }
+
+              console.log(`CI not finished yet (attempt ${attempt}/${maxAttempts}). Waiting...`);
+              await delay(delayMs);
             }
 
-            const ciRun = runs.workflow_runs[0];
-
-            if (ciRun.conclusion !== 'success') {
-              core.setFailed(`CI not successful (status: ${ciRun.conclusion})`);
-            }
-
-            console.log('CI passed. Proceeding to deploy.');
+            throw new Error('Timed out waiting for CI to complete');
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -45,8 +60,6 @@ jobs:
             cd /home/ubuntu/blog_post/backend
             git fetch origin
             git reset --hard ${{ github.sha }}
-
-
             docker compose down --remove-orphans
             docker compose build
             docker compose up -d
