@@ -195,6 +195,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:5173",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "http://13.53.73.97:8006",
     "http://13.53.73.97:8007",
     config("FRONTEND_URL", default="http://127.0.0.1:5173"),
@@ -214,6 +215,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:5173",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "http://13.53.73.97:8006",
     "http://13.53.73.97:8007",
     config("FRONTEND_URL", default="http://127.0.0.1:5173"),
@@ -244,16 +246,14 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "1500/min",
         "user": "30000/min",
-    }
+    },
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer"
+    ]
 }
 if DEBUG:
-    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
-        "rest_framework.renderers.JSONRenderer",
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] += [
         "rest_framework.renderers.BrowsableAPIRenderer",
-    ]
-else:
-    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
-        "rest_framework.renderers.JSONRenderer"
     ]
 
 SIMPLE_JWT = {

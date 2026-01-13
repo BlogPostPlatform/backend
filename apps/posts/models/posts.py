@@ -1,3 +1,4 @@
+from django.contrib.postgres.indexes import GinIndex
 from django.core.cache import cache
 from django.db import IntegrityError, models
 
@@ -46,6 +47,9 @@ class Post(BaseModel):
     tags = models.ManyToManyField(Tag, blank=True, related_name="posts")
     allow_comments = models.BooleanField(default=True)
 
+    views_count_total = models.BigIntegerField(default=0)
+    views_count_unique = models.BigIntegerField(default=0)
+
     published = PublishedPostManager()
     objects = models.Manager()
 
@@ -55,6 +59,26 @@ class Post(BaseModel):
             models.Index(fields=["status", "published_at"]),
             models.Index(fields=["status", "created_at"]),
             models.Index(fields=["slug"]),
+            GinIndex(
+                fields=["title"],
+                name="post_title_trgm_gin",
+                opclasses=["gin_trgm_ops"],
+            ),
+            GinIndex(
+                fields=["short_description"],
+                name="post_shdesc_trgm_gin",
+                opclasses=["gin_trgm_ops"],
+            ),
+            GinIndex(
+                fields=["text_content"],
+                name="post_text_trgm_gin",
+                opclasses=["gin_trgm_ops"],
+            ),
+            GinIndex(
+                fields=["slug"],
+                name="post_slug_trgm_gin",
+                opclasses=["gin_trgm_ops"],
+            ),
         ]
         db_table = "Posts"
         verbose_name = "Post"

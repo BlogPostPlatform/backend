@@ -4,6 +4,7 @@ from django.core.cache import cache
 from django.db.models import Count, Q
 from django.http import HttpRequest
 from django_filters.rest_framework import DjangoFilterBackend
+from django_redis import get_redis_connection
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
@@ -30,6 +31,7 @@ from apps.tags.serializers import TagSerializer
 from apps.users.models.user import Role, User
 
 logger = logging.getLogger(__name__)
+redis = get_redis_connection("default")
 
 
 @extend_schema(tags=["Posts"])
@@ -120,7 +122,7 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         cache_key = f"post_detail:{instance.slug}"
-
+        print(request.COOKIES)
         post_data = cache.get(cache_key)
 
         if not post_data:
@@ -131,10 +133,14 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         else:
             logger.debug("[CACHE] Post detail cache hit - key=%s", cache_key)
 
+        # Register view
         viewer_id, cookie_to_set = get_viewer_id(request)
         register_post_view(instance.pk, viewer_id)
+
+        # Get combined count (DB + Redis)
         total, unique = get_post_views(instance.pk)
 
+        # User interaction data
         interaction_data = (
             {
                 "is_favorited": Favourite.objects.filter(
@@ -154,15 +160,21 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         response_data = {
             **post_data,
             "interaction": interaction_data,
-            "views_total": total,
-            "views_unique": unique,
+            "views_total": total,  # Combined DB + Redis
+            "views_unique": unique,  # Combined DB + Redis
         }
+
         response = Response(response_data)
 
         if cookie_to_set:
             response.set_cookie(
-                "viewer_id", cookie_to_set, max_age=31536000, samesite="None", secure=True
+                "viewer_id",
+                cookie_to_set,
+                max_age=31536000,  # 1 year
+                samesite="None",
+                secure=True,
             )
+
         return response
 
     @action(methods=["get"], detail=False, url_path="latest-posts")
@@ -204,17 +216,30 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         user_role = "anon" if request.user.is_anonymous else request.user.role
         cache_key = f"most_popular_posts:{user_role}"
 
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            logger.debug("[CACHE] Most popular posts cache hit - key=%s", cache_key)
-            return Response(cached_data)
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
 
-        queryset = self.get_queryset()[:10]
-        serializer = self.get_serializer(queryset, many=True)
+        # get top post IDs from Redis (source of truth)
+        # top_ids = redis.zrevrange("posts:views:zset:total", 0, 9)
+        # top_ids = [int(i) for i in top_ids]
+        # print(f"Top IDs from Redis: {top_ids}")
+        # if not top_ids:
+        #     return Response([])
+        #
+        # posts = list(
+        #     self.get_queryset()
+        #     .filter(id__in=top_ids)
+        #     .select_related("author__profile", "category")
+        # )
 
-        cache.set(cache_key, serializer.data, 60 * 20)  # 20 minutes
-        logger.debug("[CACHE] Most popular posts cached - key=%s", cache_key)
-        return Response(serializer.data)
+        # preserve Redis ranking
+        # posts.sort(key=lambda p: top_ids.index(p.id))
+        posts = self.get_queryset().order_by("-views_count_unique")[:10]
+        data = self.get_serializer(posts, many=True).data
+        cache.set(cache_key, data, 60 * 10)
+
+        return Response(data)
 
     @action(methods=["get"], detail=False, url_path="homepage-statistics")
     def homepage_statistics(self, request):
