@@ -20,7 +20,7 @@ colorama==0.4.6
 cron_descriptor==2.0.6
 distlib==0.4.0
 daphne==4.2.1
-Django==5.2.9
+Django==5.2.10
 django-celery-beat==2.8.1
 django-cleanup==9.0.0
 django-cors-headers==4.9.0
@@ -32,7 +32,7 @@ django-storages==1.14.6
 django-stubs==5.2.8
 django-stubs-ext==5.2.8
 django-timezone-field==7.1
-django-unfold==0.71.0
+django-unfold==0.76.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 djangorestframework-stubs==3.16.6

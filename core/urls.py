@@ -22,6 +22,9 @@ from django.http import HttpResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+# Import admin customizations
+import core.admin  # noqa
+
 
 def health(request):
     return HttpResponse("ok")
@@ -34,4 +37,7 @@ urlpatterns = [
     path("api/docs/", SpectacularAPIView.as_view(), name="schema"),
     path("api/check-health/", health, name="check-health"),
     path("api/", include("apps.urls")),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
