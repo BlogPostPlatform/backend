@@ -4,6 +4,7 @@ urlpatterns = [
     path("accounts/", include("apps.users.urls")),
     path("bookmarks/", include("apps.bookmarks.urls")),
     path("category/", include("apps.categories.urls")),
+    path("collections/", include("apps.collection.urls")),
     path("favourites/", include("apps.favourites.urls")),
     path("notifications/", include("apps.notifications.urls")),
     path("posts/", include("apps.posts.urls")),

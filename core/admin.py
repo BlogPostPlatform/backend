@@ -1,12 +1,13 @@
-# Put this in your main project's admin.py or in a separate admin configuration file
-
 from django.contrib import admin
-from django.urls import reverse
-from django.utils.html import format_html
 from unfold.sites import UnfoldAdminSite
 from unfold.admin import ModelAdmin
-from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSchedule, \
-    ClockedSchedule, SolarSchedule
+from django_celery_beat.models import (
+    PeriodicTask,
+    IntervalSchedule,
+    CrontabSchedule,
+    ClockedSchedule,
+    SolarSchedule
+)
 
 
 class IntervalScheduleAdmin(ModelAdmin):

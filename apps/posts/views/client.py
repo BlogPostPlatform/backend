@@ -77,7 +77,14 @@ class ClientPostViewSet(ReadOnlyModelViewSet):
         return PostListSerializer
 
     def get_permissions(self):
-        if self.action in ["favourite", "bookmark", "put_reaction"]:
+        if self.action in [
+            "favourite",
+            "bookmark",
+            "put_reaction",
+            "remove_reaction",
+            "remove_bookmark",
+            "remove_favourite",
+        ]:
             return [IsAuthenticated()]
         return [AllowAny()]
 

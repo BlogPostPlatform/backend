@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'apps.analytics',
     'apps.bookmarks',
     'apps.categories',
+    'apps.collection',
     'apps.comments',
     'apps.common',
     'apps.favourites',
