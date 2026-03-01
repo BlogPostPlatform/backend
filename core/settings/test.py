@@ -51,6 +51,7 @@ SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"] = timedelta(minutes=10)  # noqa: F405
 # Email – capture everything in memory
 # ============================================================================
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+EMAIL_HOST_USER = "test@example.com"
 
 # ============================================================================
 # Celery – run tasks synchronously

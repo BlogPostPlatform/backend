@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from apps.common.utils.files import unique_image_path
 from apps.common.utils.validators import validate_image_size
-from core.storages import PublicMediaStorage
+from core.storages import select_storage
 
 
 class UserProfile(models.Model):
@@ -14,7 +14,7 @@ class UserProfile(models.Model):
     phone_number = models.CharField(max_length=20, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     profile_photo = models.ImageField(
-        storage=PublicMediaStorage(),
+        storage=select_storage,
         null=True,
         blank=True,
         upload_to=unique_image_path,

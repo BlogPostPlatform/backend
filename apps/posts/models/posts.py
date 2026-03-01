@@ -9,7 +9,7 @@ from apps.common.utils.utils import generate_unique_slug
 from apps.posts.utils import calculate_read_time, extract_readable_text
 from apps.tags.models import Tag
 from apps.users.models import User
-from core.storages import PublicMediaStorage
+from core.storages import select_storage
 
 from .managers import PublishedPostManager
 from .reactions import ReactionType
@@ -34,7 +34,7 @@ class Post(BaseModel):
     text_content = models.TextField(null=True, blank=True, help_text="Text formatted content")
 
     cover_image = models.ImageField(
-        storage=PublicMediaStorage(), upload_to=unique_image_path, null=True, blank=True
+        storage=select_storage, upload_to=unique_image_path, null=True, blank=True
     )
 
     status = models.CharField(

@@ -3,14 +3,14 @@ from django.db import models
 from apps.common.models import BaseModel
 from apps.common.utils.files import unique_image_path
 from apps.posts.models import Post
-from core.storages import PublicMediaStorage
+from core.storages import select_storage
 
 
 class PostImage(BaseModel):
     post = models.ForeignKey(
         Post, on_delete=models.CASCADE, related_name="images", null=True, blank=True
     )
-    image = models.ImageField(storage=PublicMediaStorage(), upload_to=unique_image_path)
+    image = models.ImageField(storage=select_storage, upload_to=unique_image_path)
     alt_text = models.CharField(max_length=255, blank=True)
     caption = models.CharField(max_length=255, blank=True)
     sort_order = models.PositiveIntegerField(default=0, db_index=True)

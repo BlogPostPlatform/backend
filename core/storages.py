@@ -21,3 +21,17 @@ class PrivateMediaStorage(S3Boto3Storage):
     default_acl = "private"
     file_overwrite = False
     querystring_auth = True  # SIGN the URLs
+
+
+def select_storage():
+    """
+    Callable storage selector for model ImageField/FileField.
+    Evaluated lazily at runtime so test settings (InMemoryStorage) take effect
+    instead of always instantiating the S3 backend at class-definition time.
+    """
+    default_backend = settings.STORAGES.get("default", {}).get("BACKEND", "")
+    if default_backend == "django.core.files.storage.InMemoryStorage":
+        from django.core.files.storage import InMemoryStorage
+
+        return InMemoryStorage()
+    return PublicMediaStorage()
