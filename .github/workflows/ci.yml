@@ -50,6 +50,7 @@ jobs:
       CELERY_RESULT_BACKEND: redis://localhost:6379/0
       USE_TZ: True
       GOOGLE_OAUTH_CLIENT_ID: test
+      EMAIL_HOST_USER: test@example.com
 
     steps:
       - uses: actions/checkout@v4
