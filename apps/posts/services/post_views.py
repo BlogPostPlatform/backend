@@ -1,14 +1,28 @@
-from django_redis import get_redis_connection
+import logging
 
 from apps.posts.models import Post
 
-redis = get_redis_connection("default")
+logger = logging.getLogger(__name__)
+
+
+def _get_redis():
+    """Return a Redis connection or None if unavailable (e.g. in tests)."""
+    try:
+        from django_redis import get_redis_connection
+
+        return get_redis_connection("default")
+    except (NotImplementedError, Exception):
+        return None
 
 
 def register_post_view(post_id: int, viewer_id: str):
     """
     Adds a view (unique + total) for the given post.
+    Silently skips when Redis is unavailable.
     """
+    redis = _get_redis()
+    if redis is None:
+        return
     pipe = redis.pipeline()
     pipe.incr(f"post:{post_id}:views_total")
     pipe.sadd(f"post:{post_id}:views_unique", viewer_id)
@@ -18,14 +32,8 @@ def register_post_view(post_id: int, viewer_id: str):
 def get_post_views(post_id: int):
     """
     Returns (total_views, unique_views) from Redis + DB combined.
+    Falls back to DB-only counts when Redis is unavailable.
     """
-    pipe = redis.pipeline()
-    pipe.get(f"post:{post_id}:views_total")
-    pipe.scard(f"post:{post_id}:views_unique")
-    pipe.get(f"post:{post_id}:unique_baseline")
-
-    total_redis, unique_current, baseline = pipe.execute()
-
     # Get DB counts
     try:
         post = Post.objects.only("views_count_total", "views_count_unique").get(pk=post_id)
@@ -34,6 +42,17 @@ def get_post_views(post_id: int):
     except Post.DoesNotExist:
         total_db = 0
         unique_db = 0
+
+    redis = _get_redis()
+    if redis is None:
+        return total_db, unique_db
+
+    pipe = redis.pipeline()
+    pipe.get(f"post:{post_id}:views_total")
+    pipe.scard(f"post:{post_id}:views_unique")
+    pipe.get(f"post:{post_id}:unique_baseline")
+
+    total_redis, unique_current, baseline = pipe.execute()
 
     # Combine: DB (historical) + Redis (recent)
     total_combined = total_db + int(total_redis or 0)

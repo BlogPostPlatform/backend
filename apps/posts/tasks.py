@@ -3,6 +3,7 @@ import logging
 from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
+from django.utils.functional import SimpleLazyObject
 from django_redis import get_redis_connection
 
 from .models import Post
@@ -10,7 +11,7 @@ from .models import Post
 logger = logging.getLogger(__name__)
 
 
-redis = get_redis_connection("default")
+redis = SimpleLazyObject(lambda: get_redis_connection("default"))
 
 
 @shared_task

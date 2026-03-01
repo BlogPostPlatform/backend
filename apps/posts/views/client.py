@@ -3,6 +3,7 @@ import logging
 from django.core.cache import cache
 from django.db.models import Count, Q
 from django.http import HttpRequest
+from django.utils.functional import SimpleLazyObject
 from django_filters.rest_framework import DjangoFilterBackend
 from django_redis import get_redis_connection
 from drf_spectacular.utils import extend_schema
@@ -31,7 +32,7 @@ from apps.tags.serializers import TagSerializer
 from apps.users.models.user import Role, User
 
 logger = logging.getLogger(__name__)
-redis = get_redis_connection("default")
+redis = SimpleLazyObject(lambda: get_redis_connection("default"))
 
 
 @extend_schema(tags=["Posts"])
