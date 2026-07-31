@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
 from unfold.contrib.filters.admin import RangeDateFilter
@@ -57,7 +58,7 @@ class CategoryAdmin(ModelAdmin):
                 obj.id,
                 count
             )
-        return format_html('<span style="color: #9ca3af; font-size: 11px;">No posts</span>')
+        return mark_safe('<span style="color: #9ca3af; font-size: 11px;">No posts</span>')
 
     @display(description="Created", ordering="created_at")
     def created_display(self, obj):

@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from decouple import config
+from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.core.cache import cache
 from rest_framework import serializers
@@ -14,7 +14,7 @@ from apps.users.service import send_email_verification
 logger = logging.getLogger(__name__)
 
 REG_SCOPE = "register"
-TTL_SECONDS = config("TTL_SECONDS", 300, cast=int)
+TTL_SECONDS = settings.TTL_SECONDS
 
 
 class RegisterSerializer(serializers.Serializer):

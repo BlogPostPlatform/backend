@@ -1,13 +1,40 @@
 from django.contrib import admin
-from unfold.sites import UnfoldAdminSite
-from unfold.admin import ModelAdmin
-from django_celery_beat.models import (
-    PeriodicTask,
-    IntervalSchedule,
-    CrontabSchedule,
-    ClockedSchedule,
-    SolarSchedule
+from django_celery_beat.admin import (
+    ClockedScheduleAdmin as BaseClockedScheduleAdmin,
 )
+from django_celery_beat.admin import (
+    CrontabScheduleAdmin as BaseCrontabScheduleAdmin,
+)
+from django_celery_beat.admin import PeriodicTaskAdmin as BasePeriodicTaskAdmin
+from django_celery_beat.admin import PeriodicTaskForm, TaskSelectWidget
+from django_celery_beat.models import (
+    ClockedSchedule,
+    CrontabSchedule,
+    IntervalSchedule,
+    PeriodicTask,
+    SolarSchedule,
+)
+from rest_framework_simplejwt.token_blacklist.admin import (
+    BlacklistedTokenAdmin as BaseBlacklistedTokenAdmin,
+)
+from rest_framework_simplejwt.token_blacklist.admin import (
+    OutstandingTokenAdmin as BaseOutstandingTokenAdmin,
+)
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from unfold.admin import ModelAdmin
+from unfold.sites import UnfoldAdminSite
+from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextInputWidget
+
+
+class UnfoldTaskSelectWidget(UnfoldAdminSelectWidget, TaskSelectWidget):
+    pass
+
+
+class UnfoldPeriodicTaskForm(PeriodicTaskForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["task"].widget = UnfoldAdminTextInputWidget()
+        self.fields["regtask"].widget = UnfoldTaskSelectWidget()
 
 
 class IntervalScheduleAdmin(ModelAdmin):
@@ -29,21 +56,10 @@ class IntervalScheduleAdmin(ModelAdmin):
     }
 
 
-class CrontabScheduleAdmin(ModelAdmin):
+class CrontabScheduleAdmin(BaseCrontabScheduleAdmin, ModelAdmin):
     list_display = ('__str__', 'minute', 'hour', 'day_of_week', 'day_of_month', 'month_of_year')
     list_filter = ('month_of_year', 'day_of_week')
     search_fields = ('minute', 'hour', 'day_of_week', 'day_of_month', 'month_of_year')
-
-    fieldsets = (
-        ('Time', {
-            'fields': ('minute', 'hour'),
-            'classes': ('unfold',),
-        }),
-        ('Date', {
-            'fields': ('day_of_week', 'day_of_month', 'month_of_year'),
-            'classes': ('unfold',),
-        }),
-    )
 
     help_texts = {
         'minute': 'Minute (0-59). Use * for every minute.',
@@ -54,7 +70,7 @@ class CrontabScheduleAdmin(ModelAdmin):
     }
 
 
-class ClockedScheduleAdmin(ModelAdmin):
+class ClockedScheduleAdmin(BaseClockedScheduleAdmin, ModelAdmin):
     list_display = ('__str__', 'clocked_time')
     list_filter = ('clocked_time',)
     search_fields = ('clocked_time',)
@@ -66,51 +82,12 @@ class SolarScheduleAdmin(ModelAdmin):
     search_fields = ('event', 'latitude', 'longitude')
 
 
-class PeriodicTaskAdmin(ModelAdmin):
+class PeriodicTaskAdmin(BasePeriodicTaskAdmin, ModelAdmin):
+    form = UnfoldPeriodicTaskForm
     list_display = ('name', 'task', 'enabled', 'last_run_at', 'total_run_count')
     list_filter = ('enabled', 'one_off', 'task')
     search_fields = ('name', 'task')
     ordering = ('name',)
-
-    fieldsets = (
-        (None, {
-            'fields': ('name', 'task', 'description'),
-            'classes': ('unfold',),
-        }),
-        ('Schedule', {
-            'fields': ('interval', 'crontab', 'solar', 'clocked'),
-            'description': 'Select one type of schedule. Only one should be chosen.',
-            'classes': ('unfold',),
-        }),
-        ('Arguments', {
-            'fields': ('args', 'kwargs'),
-            'classes': ('collapse', 'unfold'),
-        }),
-        ('Queue & Routing', {
-            'fields': ('queue', 'exchange', 'routing_key', 'headers', 'priority'),
-            'classes': ('collapse', 'unfold'),
-        }),
-        ('Timing & Control', {
-            'fields': ('expires', 'expire_seconds', 'one_off', 'start_time', 'enabled'),
-            'classes': ('unfold',),
-        }),
-    )
-
-    readonly_fields = ('last_run_at', 'total_run_count', 'date_changed')
-
-    help_texts = {
-        'name': 'A human-readable name for this task.',
-        'task': 'The name of the task function to execute.',
-        'interval': 'For interval-based scheduling.',
-        'crontab': 'For cron-based scheduling.',
-        'solar': 'For solar event-based scheduling.',
-        'clocked': 'For one-time scheduling at a specific time.',
-        'args': 'JSON list of positional arguments for the task.',
-        'kwargs': 'JSON dict of keyword arguments for the task.',
-        'queue': 'The queue to send the task to.',
-        'enabled': 'Whether this task is active.',
-    }
-
 
 class CustomAdminSite(UnfoldAdminSite):
     """Custom admin site with enhanced features"""
@@ -192,3 +169,16 @@ admin.site.register(CrontabSchedule, CrontabScheduleAdmin)
 admin.site.register(ClockedSchedule, ClockedScheduleAdmin)
 admin.site.register(SolarSchedule, SolarScheduleAdmin)
 admin.site.register(PeriodicTask, PeriodicTaskAdmin)
+
+admin.site.unregister(OutstandingToken)
+admin.site.unregister(BlacklistedToken)
+
+
+@admin.register(OutstandingToken)
+class OutstandingTokenAdmin(BaseOutstandingTokenAdmin, ModelAdmin):
+    pass
+
+
+@admin.register(BlacklistedToken)
+class BlacklistedTokenAdmin(BaseBlacklistedTokenAdmin, ModelAdmin):
+    pass

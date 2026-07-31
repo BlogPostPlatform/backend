@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import action
@@ -187,7 +188,7 @@ class PostAdmin(ModelAdmin):
                     '</div>',
                     preview
                 )
-        return format_html('<span style="color: #9ca3af;">No content available</span>')
+        return mark_safe('<span style="color: #9ca3af;">No content available</span>')
 
     content_preview.short_description = "Content Preview"
 
@@ -197,7 +198,7 @@ class PostAdmin(ModelAdmin):
                 '<img src="{}" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />',
                 obj.cover_image.url
             )
-        return format_html('<span style="color: #9ca3af;">No cover image</span>')
+        return mark_safe('<span style="color: #9ca3af;">No cover image</span>')
 
     cover_preview.short_description = "Cover Image Preview"
 
@@ -231,12 +232,12 @@ class PostAdmin(ModelAdmin):
 
 
 @admin.register(Reaction)
-class ReactionAdmin(admin.ModelAdmin):
+class ReactionAdmin(ModelAdmin):
     pass
 
 
 @admin.register(ReactionType)
-class ReactionTypeAdmin(admin.ModelAdmin):
+class ReactionTypeAdmin(ModelAdmin):
     pass
 # @admin.register(PostImage)
 # class PostImageAdmin(ModelAdmin):

@@ -1,6 +1,6 @@
 import logging
 
-from decouple import config
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.cache import cache
 from rest_framework import serializers
@@ -13,7 +13,7 @@ from apps.users.serializers import UserSerializer
 logger = logging.getLogger(__name__)
 
 REG_SCOPE = "register"
-TTL_SECONDS = config("TTL_SECONDS", 300, cast=int)
+TTL_SECONDS = settings.TTL_SECONDS
 
 
 class VerifyRegisterSerializer(serializers.Serializer):

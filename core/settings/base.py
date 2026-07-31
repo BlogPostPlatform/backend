@@ -9,7 +9,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from decouple import Csv, config
+import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # ============================================================================
 # Paths
@@ -17,19 +18,40 @@ from decouple import Csv, config
 # settings/ is one level deeper than the old settings.py
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+env = environ.Env()
+
+IN_K8S = "KUBERNETES_SERVICE_HOST" in os.environ
+
+if not IN_K8S:
+    # Try multiple common .env file names for local development
+    env_file = BASE_DIR / ".env"
+    if env_file.exists():
+        env.read_env(str(env_file))
+    elif (BASE_DIR / ".env.example").exists():
+        env.read_env(str(BASE_DIR / ".env.example"))
+elif "DJANGO_ENV" not in os.environ:
+    raise ImproperlyConfigured("DJANGO_ENV must be set explicitly in Kubernetes.")
+
 # ============================================================================
 # Core
 # ============================================================================
-SECRET_KEY = config("SECRET_KEY", default="")
+SECRET_KEY = env.str("SECRET_KEY", default="")
 DEBUG = False  # overridden per env
+_explicit_settings_variant = os.environ.get("DJANGO_SETTINGS_MODULE", "").rpartition(".")[2]
+DJANGO_ENV = (
+    _explicit_settings_variant
+    if _explicit_settings_variant in {"dev", "test", "prod"}
+    else env.str("DJANGO_ENV", default="dev").lower()
+)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 
 # ============================================================================
 # Infrastructure hosts
 # ============================================================================
-REDIS_HOST = config("REDIS_HOST", default="127.0.0.1")
-REDIS_PORT = config("REDIS_PORT", default=6379, cast=int)
+REDIS_HOST = env.str("REDIS_HOST", default="127.0.0.1")
+REDIS_PORT = env.int("REDIS_PORT", default=6379)
+REDIS_PASSWORD = env.str("REDIS_PASSWORD", "")
 
 # ============================================================================
 # Application definition
@@ -85,6 +107,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "apps.common.middleware.HealthCheckLogFilterMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -119,11 +142,11 @@ ASGI_APPLICATION = "core.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME", default="blog"),
-        "USER": config("DB_USER", default="postgres"),
-        "PASSWORD": config("DB_PASSWORD", default="postgres"),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="5432"),
+        "NAME": env.str("POSTGRES_DB", default="blog"),
+        "USER": env.str("POSTGRES_USER", default="postgres"),
+        "PASSWORD": env.str("POSTGRES_PASSWORD", default="postgres"),
+        "HOST": env.str("POSTGRES_HOST", default="localhost"),
+        "PORT": env.int("POSTGRES_PORT", default=5432),
     },
 }
 
@@ -167,53 +190,159 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # ============================================================================
 # AWS / S3 – only used when USE_S3=True in .env
 # ============================================================================
-USE_S3 = config("USE_S3", default=False, cast=bool)
+USE_S3 = env.bool("USE_S3", default=False) and DJANGO_ENV != "test"
 
-AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
-AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
-AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="")
-AWS_PUBLIC_BUCKET_NAME = config("AWS_PUBLIC_BUCKET_NAME", default="")
-AWS_PRIVATE_BUCKET_NAME = config("AWS_PRIVATE_BUCKET_NAME", default="")
-AWS_S3_SIGNATURE_VERSION = "s3v4"
+AWS_ACCESS_KEY_ID = env.str("AWS_ACCESS_KEY_ID", default="")
+AWS_SECRET_ACCESS_KEY = env.str("AWS_SECRET_ACCESS_KEY", default="")
+AWS_SESSION_TOKEN = env.str("AWS_SESSION_TOKEN", default="")
+AWS_S3_REGION_NAME = env.str("AWS_S3_REGION_NAME", default="")
+AWS_S3_ENDPOINT_URL = env.str("AWS_S3_ENDPOINT_URL", default="") or None
+AWS_S3_CUSTOM_DOMAIN = env.str("AWS_S3_CUSTOM_DOMAIN", default="") or None
+AWS_S3_ADDRESSING_STYLE = env.str("AWS_S3_ADDRESSING_STYLE", default="") or None
+AWS_S3_SIGNATURE_VERSION = env.str("AWS_S3_SIGNATURE_VERSION", default="s3v4")
+AWS_S3_USE_SSL = env.bool("AWS_S3_USE_SSL", default=True)
+AWS_S3_VERIFY = env.bool("AWS_S3_VERIFY", default=True)
+AWS_S3_USE_THREADS = env.bool("AWS_S3_USE_THREADS", default=True)
+AWS_S3_MAX_MEMORY_SIZE = env.int("AWS_S3_MAX_MEMORY_SIZE", default=10 * 1024 * 1024)
+AWS_QUERYSTRING_EXPIRE = env.int("AWS_QUERYSTRING_EXPIRE", default=900)
+
+AWS_PUBLIC_BUCKET_NAME = env.str("AWS_PUBLIC_BUCKET_NAME", default="")
+AWS_PRIVATE_BUCKET_NAME = env.str("AWS_PRIVATE_BUCKET_NAME", default="")
+AWS_STATIC_BUCKET_NAME = env.str("AWS_STATIC_BUCKET_NAME", default="")
+AWS_PUBLIC_CUSTOM_DOMAIN = env.str("AWS_PUBLIC_CUSTOM_DOMAIN", default=AWS_S3_CUSTOM_DOMAIN) or None
+AWS_STATIC_CUSTOM_DOMAIN = env.str("AWS_STATIC_CUSTOM_DOMAIN", default=AWS_S3_CUSTOM_DOMAIN) or None
+AWS_PUBLIC_MEDIA_LOCATION = env.str("AWS_PUBLIC_MEDIA_LOCATION", default="").strip("/")
+AWS_PRIVATE_MEDIA_LOCATION = env.str("AWS_PRIVATE_MEDIA_LOCATION", default="").strip("/")
+AWS_STATIC_LOCATION = env.str("AWS_STATIC_LOCATION", default="static").strip("/")
+
+AWS_PUBLIC_OBJECT_PARAMETERS = env.json(
+    "AWS_PUBLIC_OBJECT_PARAMETERS",
+    default={"CacheControl": "max-age=86400"},
+)
+AWS_PRIVATE_OBJECT_PARAMETERS = env.json("AWS_PRIVATE_OBJECT_PARAMETERS", default={})
+AWS_STATIC_OBJECT_PARAMETERS = env.json(
+    "AWS_STATIC_OBJECT_PARAMETERS",
+    default={"CacheControl": "max-age=31536000, immutable"},
+)
+
 AWS_DEFAULT_ACL = None
 AWS_S3_FILE_OVERWRITE = False
-AWS_QUERYSTRING_AUTH = False
+USE_S3_FOR_STATIC = USE_S3 and env.bool("USE_S3_FOR_STATIC", default=False)
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 if USE_S3:
-    STORAGES = {
-        "default": {
-            "BACKEND": "core.storages.PublicMediaStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    if bool(AWS_ACCESS_KEY_ID) != bool(AWS_SECRET_ACCESS_KEY):
+        raise ImproperlyConfigured(
+            "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must either both be set or both be "
+            "omitted so the AWS credential provider chain can be used."
+        )
+
+    required = {
+        "AWS_S3_REGION_NAME": AWS_S3_REGION_NAME,
+        "AWS_PUBLIC_BUCKET_NAME": AWS_PUBLIC_BUCKET_NAME,
+        "AWS_PRIVATE_BUCKET_NAME": AWS_PRIVATE_BUCKET_NAME,
+    }
+    if USE_S3_FOR_STATIC:
+        required["AWS_STATIC_BUCKET_NAME"] = AWS_STATIC_BUCKET_NAME
+
+    missing = [name for name, value in required.items() if not value]
+    if missing:
+        raise ImproperlyConfigured(
+            f"S3 storage is enabled but required environment variables are missing: {missing}"
+        )
+
+    if AWS_S3_ENDPOINT_URL and not AWS_S3_ENDPOINT_URL.startswith(("http://", "https://")):
+        raise ImproperlyConfigured("AWS_S3_ENDPOINT_URL must start with http:// or https://.")
+    if AWS_S3_ADDRESSING_STYLE not in {None, "auto", "path", "virtual"}:
+        raise ImproperlyConfigured("AWS_S3_ADDRESSING_STYLE must be one of: auto, path, virtual.")
+    for _domain_name, _domain in {
+        "AWS_PUBLIC_CUSTOM_DOMAIN": AWS_PUBLIC_CUSTOM_DOMAIN,
+        "AWS_STATIC_CUSTOM_DOMAIN": AWS_STATIC_CUSTOM_DOMAIN,
+    }.items():
+        if _domain and "://" in _domain:
+            raise ImproperlyConfigured(
+                f"{_domain_name} must be a hostname without an http:// or https:// prefix."
+            )
+
+    _s3_common_options = {
+        "region_name": AWS_S3_REGION_NAME,
+        "endpoint_url": AWS_S3_ENDPOINT_URL,
+        "addressing_style": AWS_S3_ADDRESSING_STYLE,
+        "signature_version": AWS_S3_SIGNATURE_VERSION,
+        "use_ssl": AWS_S3_USE_SSL,
+        "verify": AWS_S3_VERIFY,
+        "use_threads": AWS_S3_USE_THREADS,
+        "max_memory_size": AWS_S3_MAX_MEMORY_SIZE,
+        "file_overwrite": False,
+        "default_acl": None,
+    }
+    if AWS_ACCESS_KEY_ID:
+        _s3_common_options.update(
+            {"access_key": AWS_ACCESS_KEY_ID, "secret_key": AWS_SECRET_ACCESS_KEY}
+        )
+    if AWS_SESSION_TOKEN:
+        _s3_common_options["security_token"] = AWS_SESSION_TOKEN
+
+    STORAGES["default"] = {  # type: ignore
+        "BACKEND": "core.storages.PublicMediaStorage",
+        "OPTIONS": {
+            **_s3_common_options,
+            "bucket_name": AWS_PUBLIC_BUCKET_NAME,
+            "location": AWS_PUBLIC_MEDIA_LOCATION,
+            "custom_domain": AWS_PUBLIC_CUSTOM_DOMAIN,
+            "querystring_auth": False,
+            "object_parameters": AWS_PUBLIC_OBJECT_PARAMETERS,
         },
     }
-else:
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    STORAGES["private"] = {  # type: ignore
+        "BACKEND": "core.storages.PrivateMediaStorage",
+        "OPTIONS": {
+            **_s3_common_options,
+            "bucket_name": AWS_PRIVATE_BUCKET_NAME,
+            "location": AWS_PRIVATE_MEDIA_LOCATION,
+            "custom_domain": None,
+            "querystring_auth": True,
+            "querystring_expire": AWS_QUERYSTRING_EXPIRE,
+            "object_parameters": AWS_PRIVATE_OBJECT_PARAMETERS,
         },
     }
+
+    if USE_S3_FOR_STATIC:
+        STORAGES["staticfiles"] = {  # type: ignore
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                **_s3_common_options,
+                "bucket_name": AWS_STATIC_BUCKET_NAME,
+                "location": AWS_STATIC_LOCATION,
+                "custom_domain": AWS_STATIC_CUSTOM_DOMAIN,
+                "querystring_auth": False,
+                "object_parameters": AWS_STATIC_OBJECT_PARAMETERS,
+            },
+        }
 
 # ============================================================================
 # CORS / CSRF
 # ============================================================================
-CORS_ALLOWED_ORIGINS = config(
+CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080",  # noqa
-    cast=Csv(),
+    default=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8080",
+    ],
 )
 
-# Append extra origins from env vars (backwards-compat)
-_extra_origins = [
-    config("FRONTEND_URL", default=""),
-    config("FRONTEND_URL_1", default=""),
-    config("FRONTEND_URL_2", default=""),
-]
-CORS_ALLOWED_ORIGINS += [o for o in _extra_origins if o]
+# Canonical public frontend URL, used for links generated by background tasks.
+# Additional browser origins belong in CORS_ALLOWED_ORIGINS, not numbered URL vars.
+FRONTEND_URL = env.str("FRONTEND_URL", default="http://localhost:5173").rstrip("/")
+if FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
 
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -302,12 +431,20 @@ SIMPLE_JWT = {
 # ============================================================================
 # Email
 # ============================================================================
-EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
-EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
-EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="email@example.com")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="password")
+EMAIL_BACKEND = env.str("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env.str("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="email@example.com")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="password")
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
+
+# ============================================================================
+# One-time passwords
+# ============================================================================
+OTP_LEN = env.int("OTP_LEN", default=6)
+TTL_SECONDS = env.int("TTL_SECONDS", default=300)
+MAX_ATTEMPTS = env.int("MAX_ATTEMPTS", default=5)
 
 # ============================================================================
 # Celery
@@ -365,7 +502,7 @@ CHANNEL_LAYERS = {
 # ============================================================================
 # Google OAuth
 # ============================================================================
-GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_CLIENT_ID = env.str("GOOGLE_OAUTH_CLIENT_ID", default="")
 
 # ============================================================================
 # DRF Spectacular
@@ -390,50 +527,47 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-# ============================================================================
-# Logging – base (no "db" handler; envs opt-in)
-# ============================================================================
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "suppress_successful_health_checks": {
+            "()": "core.logging.SuccessfulHealthCheckAccessLogFilter",
+        },
+    },
     "formatters": {
         "verbose": {
-            "format": "[{asctime}] {levelname} {name}:{lineno} - {message}",
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
+        },
+        "django.server": {
+            "()": "django.utils.log.ServerFormatter",
+            "format": "[{server_time}] {message}",
             "style": "{",
         },
     },
     "handlers": {
-        "file": {
-            "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": os.path.join(BASE_DIR, "app.log"),
-            "formatter": "verbose",
-        },
         "console": {
-            "level": "WARNING",
+            "level": "DEBUG",
+            "filters": ["suppress_successful_health_checks"],
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
+        "django_server": {
+            "level": "INFO",
+            "filters": ["suppress_successful_health_checks"],
+            "class": "logging.StreamHandler",
+            "formatter": "django.server",
+        },
     },
-    "root": {
-        "handlers": ["console", "file"],
-        "level": "INFO",
-    },
+    "root": {"level": "INFO", "handlers": ["console"]},
     "loggers": {
-        "django.request": {
-            "handlers": ["console", "file"],
-            "level": "ERROR",
+        "django.server": {
+            "handlers": ["django_server"],
+            "level": "INFO",
             "propagate": False,
         },
-        # Silence noisy third-party loggers
-        "celery": {"handlers": [], "level": "WARNING", "propagate": False},
-        "celery.worker.strategy": {"handlers": [], "level": "WARNING", "propagate": False},
-        "celery.app.trace": {"handlers": [], "level": "ERROR", "propagate": False},
-        "celery.beat": {"handlers": [], "level": "WARNING", "propagate": False},
-        "kombu": {"handlers": [], "level": "WARNING", "propagate": False},
-        "amqp": {"handlers": [], "level": "WARNING", "propagate": False},
-        "apps.posts.tasks": {
-            "handlers": ["console", "file"],
+        "django.channels.server": {
+            "handlers": ["django_server", "console"],
             "level": "INFO",
             "propagate": False,
         },

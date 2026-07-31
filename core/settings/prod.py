@@ -14,7 +14,14 @@ from .base import *  # noqa: F401,F403
 # ============================================================================
 DEBUG = False
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())  # noqa: F405
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])  # noqa: F405
+
+if not SECRET_KEY:  # noqa: F405
+    raise ImproperlyConfigured("SECRET_KEY must be set in production.")  # noqa: F405
+if not ALLOWED_HOSTS:
+    raise ImproperlyConfigured("ALLOWED_HOSTS must be set in production.")  # noqa: F405
+if not env.str("FRONTEND_URL", default=""):  # noqa: F405
+    raise ImproperlyConfigured("FRONTEND_URL must be set in production.")  # noqa: F405
 
 # ============================================================================
 # Installed apps – remove dev/debug tools
@@ -41,7 +48,7 @@ SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"] = timedelta(days=7)  # noqa: F405
 # ============================================================================
 # Security
 # ============================================================================
-SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)  # noqa: F405
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)  # noqa: F405
 SECURE_HSTS_SECONDS = 31_536_000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
@@ -57,7 +64,7 @@ X_FRAME_OPTIONS = "DENY"
 LOGGING = copy.deepcopy(LOGGING)  # noqa: F405
 LOGGING["handlers"].pop("db", None)
 # Ensure root handlers have no "db"
-LOGGING["root"]["handlers"] = ["console", "file"]
+LOGGING["root"]["handlers"] = ["console"]
 for _logger_cfg in LOGGING["loggers"].values():
     if "db" in _logger_cfg.get("handlers", []):
         _logger_cfg["handlers"].remove("db")

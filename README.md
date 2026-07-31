@@ -9,7 +9,7 @@ A **production-ready, feature-rich blog platform** built with Django REST Framew
 ## 🛠️ Technology Stack
 
 ### **Core Framework**
-- 🐍 **Django 5.2.8** - Web framework
+- 🐍 **Django 6.0.7** - Web framework
 - 🔌 **Django REST Framework** - RESTful API
 - 🗄️ **PostgreSQL** - Primary database with advanced indexing
 - 🔴 **Redis** - Caching, message broker, WebSocket backend
@@ -397,25 +397,42 @@ viewer_id = user_id | device_id | cookie_id
 
 ## 🎯 DevOps & Infrastructure
 
+### **Dependency Management**
+
+Python 3.14.6 and all dependencies are managed by [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync --locked
+uv run python manage.py runserver
+uv run pytest
+```
+
+Use `uv lock --upgrade` when intentionally upgrading dependencies and commit
+`pyproject.toml` and `uv.lock` together.
+
 ### **Containerization Ready**
 ```
 📦 Project Structure
 ├── 🐳 docker-compose.yml (ready)
 ├── 📄 Dockerfile (ready)
-├── 🔧 requirements.txt
+├── 🔧 pyproject.toml + uv.lock
 ├── ⚙️ .env configuration
 └── 🚀 Production settings
 ```
 
 ### **Environment Configuration**
 ```python
-# 🔧 Environment variables managed via python-decouple
-SECRET_KEY, DEBUG, ALLOWED_HOSTS
-DATABASE_URL (PostgreSQL)
+# 🔧 Typed environment variables managed via django-environ
+DJANGO_ENV, SECRET_KEY, ALLOWED_HOSTS
+POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT
 REDIS_HOST, REDIS_PORT
-AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+USE_S3, AWS_PUBLIC_BUCKET_NAME, AWS_PRIVATE_BUCKET_NAME, AWS_S3_REGION_NAME
+# Credentials are optional when the workload uses an IAM role/IRSA.
+AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN
+AWS_S3_ENDPOINT_URL, AWS_S3_ADDRESSING_STYLE, USE_S3_FOR_STATIC
 EMAIL_HOST, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
-GOOGLE_OAUTH_CLIENT_ID, CLIENT_SECRET
+FRONTEND_URL, CORS_ALLOWED_ORIGINS
+GOOGLE_OAUTH_CLIENT_ID
 ```
 
 ### **Logging & Monitoring**
@@ -451,6 +468,8 @@ class LogEntry:
 - ☁️ **AWS S3** - Media storage
 - 📁 Separate public/private buckets
 - 🔒 Signed URLs for private media
+- 🪪 IAM role/IRSA credential-chain support for Kubernetes
+- 🔌 Optional custom endpoint and path-style addressing for S3-compatible services
 
 ### **Database Management**
 

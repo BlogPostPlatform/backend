@@ -18,14 +18,18 @@ _settings_module = os.environ.get("DJANGO_SETTINGS_MODULE", "")
 
 # Only resolve dynamically when the settings module is this package itself
 if _settings_module == "core.settings" or not _settings_module:
-    from decouple import config
+    from django.core.exceptions import ImproperlyConfigured
 
-    DJANGO_ENV = config("DJANGO_ENV", default="dev")
+    from .base import DJANGO_ENV
 
     if DJANGO_ENV == "prod":
         from .prod import *      # noqa: F401,F403
     elif DJANGO_ENV == "test":
         from .test import *      # noqa: F401,F403
-    else:
+    elif DJANGO_ENV == "dev":
         from .dev import *        # noqa: F401,F403
+    else:
+        raise ImproperlyConfigured(
+            f"Unsupported DJANGO_ENV={DJANGO_ENV!r}; expected dev, test, or prod."
+        )
 

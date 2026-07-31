@@ -65,8 +65,13 @@ LOGGING["handlers"]["db"] = {
     "formatter": "verbose",
 }
 LOGGING["root"]["handlers"].append("db")
-LOGGING["loggers"]["django.request"]["handlers"].append("db")
-LOGGING["loggers"]["apps.posts.tasks"]["handlers"].append("db")
+for _logger_name, _level in (("django.request", "ERROR"), ("apps.posts.tasks", "INFO")):
+    _logger_config = LOGGING["loggers"].setdefault(
+        _logger_name,
+        {"handlers": ["console"], "level": _level, "propagate": False},
+    )
+    if "db" not in _logger_config["handlers"]:
+        _logger_config["handlers"].append("db")
 
 # ============================================================================
 # Unfold admin

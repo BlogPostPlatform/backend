@@ -7,17 +7,17 @@ This file contains comprehensive load tests for the blog application with realis
 user behavior patterns. Delete this file when you're done with stress testing.
 
 Installation:
-    pip install locust
+    uv sync --locked
 
 Usage:
     # Basic run (starts web UI at http://localhost:8089)
-    locust -f locustfile.py
+    uv run locust -f locustfile.py
 
     # Headless mode (no web UI)
-    locust -f locustfile.py --headless -u 100 -r 10 --run-time 5m
+    uv run locust -f locustfile.py --headless -u 100 -r 10 --run-time 5m
 
     # Target specific host
-    locust -f locustfile.py --host http://localhost:8000
+    uv run locust -f locustfile.py --host http://localhost:8000
 
 Options:
     -u, --users       Number of concurrent users

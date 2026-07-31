@@ -3,7 +3,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Optional
 
-from decouple import config
+from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.cache import cache
 
@@ -12,9 +12,9 @@ try:
 except Exception:
     get_redis_connection = None  # not on django-redis backend
 
-OTP_LEN = config("OTP_LEN", cast=int, default=6)
-TTL_SECONDS = config("TTL_SECONDS", cast=int, default=300)
-MAX_ATTEMPTS = config("MAX_ATTEMPTS", cast=int, default=5)
+OTP_LEN = settings.OTP_LEN
+TTL_SECONDS = settings.TTL_SECONDS
+MAX_ATTEMPTS = settings.MAX_ATTEMPTS
 
 DEFAULT_SCOPE = "mfa"  # keep old behavior for login serializer
 

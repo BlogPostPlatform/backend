@@ -1,4 +1,6 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
+
 from .models import (
     Comment,
     CommentEditHistory,
@@ -7,14 +9,14 @@ from .models import (
 
 
 @admin.register(Comment)
-class CommentAdmin(admin.ModelAdmin):
+class CommentAdmin(ModelAdmin):
     pass
 
 
 @admin.register(CommentEditHistory)
-class CommentEditHistoryAdmin(admin.ModelAdmin):
+class CommentEditHistoryAdmin(ModelAdmin):
     pass
 
 @admin.register(CommentReaction)
-class CommentReactionAdmin(admin.ModelAdmin):
+class CommentReactionAdmin(ModelAdmin):
     pass

@@ -2,11 +2,11 @@
 import logging
 
 from celery import shared_task
-from decouple import config
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 
 logger = logging.getLogger(__name__)
-TTL_SECONDS = config("TTL_SECONDS", cast=int, default=300)
+TTL_SECONDS = settings.TTL_SECONDS
 TTL_MINUTES = TTL_SECONDS // 60
 # Brand Colors (extracted from website)
 BRAND_COLORS = {
@@ -95,7 +95,7 @@ def send_email_verification_task(self, receiver_email, first_name, code):
     """
     try:
         subject = "E-mail manzilingizni tasdiqlang"
-        from_email = config("EMAIL_HOST_USER")
+        from_email = settings.DEFAULT_FROM_EMAIL
         to = [receiver_email]
 
         text_content = f"""
@@ -159,7 +159,7 @@ def send_password_verification_task(self, email, first_name, code):
     try:
         subject = "Parolni tiklash so'rovi"
         to = [email]
-        from_email = config("EMAIL_HOST_USER")
+        from_email = settings.DEFAULT_FROM_EMAIL
 
         text_content = f"""
 Assalomu alaykum {first_name},
@@ -228,7 +228,7 @@ def send_email_change_verification_task(self, receiver_new_email, first_name, co
     """
     try:
         subject = "Yangi e-mail manzilingizni tasdiqlang"
-        from_email = config("EMAIL_HOST_USER")
+        from_email = settings.DEFAULT_FROM_EMAIL
         to = [receiver_new_email]
 
         text_content = f"""
@@ -293,9 +293,8 @@ def send_activation_invite_task(self, email, first_name, uid, token):
     """
     try:
         subject = "Platformamizga xush kelibsiz"
-        from_email = config("EMAIL_HOST_USER")
-        frontend_url = config("FRONTEND_URL")
-        activation_link = f"{frontend_url.rstrip('/')}/activate?uid={uid}&token={token}"
+        from_email = settings.DEFAULT_FROM_EMAIL
+        activation_link = f"{settings.FRONTEND_URL}/activate?uid={uid}&token={token}"
         to = [email]
 
         text_content = f"""Assalomu alaykum {first_name},
@@ -365,14 +364,14 @@ def send_otp_verification_task(self, email, first_name, otp_code):
     """
     try:
         subject = "Kirish tasdiqlash kodi"
-        from_email = config("EMAIL_HOST_USER")
+        from_email = settings.DEFAULT_FROM_EMAIL
         to = [email]
 
         text_content = f"""Assalomu alaykum {first_name},
 
 Sizning tasdiqlash kodingiz: {otp_code}
 
-Kirishni yakunlash uchun ushbu kodni kiriting. Bu kod {TTL_SECONDS} daqiqa davomida amal qiladi.
+Kirishni yakunlash uchun ushbu kodni kiriting. Bu kod {TTL_MINUTES} daqiqa davomida amal qiladi.
 
 Agar bu kodni siz so'ramagan bo'lsangiz, xabarni e'tiborsiz qoldiring va parolingizni o'zgartirishni o'ylab ko'ring.
 

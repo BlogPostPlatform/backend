@@ -18,20 +18,25 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.http import HttpResponse
 from django.urls import include, path
 
 # Import admin customizations
 import core.admin  # noqa
 
-
-def health(request):
-    return HttpResponse("ok")
-
+from .health import (
+    liveness_probe,
+    readiness_probe,
+    startup_probe,
+)
 
 urlpatterns = [
     path("api/admin/", admin.site.urls),
-    path("api/check-health/", health, name="check-health"),
+    path("health/live/", liveness_probe),
+    path("health/ready/", readiness_probe),
+    path("health/startup/", startup_probe),
+]
+
+urlpatterns += [
     path("api/", include("apps.urls")),
 ]
 

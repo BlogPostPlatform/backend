@@ -1,7 +1,9 @@
 from django.contrib import admin
+from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.tokens import default_token_generator
@@ -39,7 +41,7 @@ class UserProfileInline(StackedInline):
                 'border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />',
                 obj.profile_photo.url
             )
-        return format_html(
+        return mark_safe(
             '<div style="width: 150px; height: 150px; background: #e5e7eb; border-radius: 50%; '
             'display: flex; align-items: center; justify-content: center; color: #9ca3af; '
             'font-size: 48px;">👤</div>'
@@ -205,7 +207,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         (_("Password Settings"), {
             "fields": ("let_user_set_password", "raw_password"),
             "classes": ("password-settings",),
-            "description": format_html(
+            "description": mark_safe(
                 '<div class="password-info">'
                 '<strong>⚠️ Password Configuration (New Users Only)</strong><br>'
                 '• <strong>Let user set password (checked):</strong> '
@@ -306,7 +308,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
             email_html += ' <span style="background: #4285f4; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px;">G</span>'
 
         email_html += '</div>'
-        return format_html(email_html)
+        return mark_safe(email_html)
 
     email_with_verification.short_description = "Email"
     email_with_verification.admin_order_field = "email"
@@ -328,7 +330,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         if obj.is_staff:
             html += ' <span style="background: #059669; color: white; padding: 4px 8px; border-radius: 4px; font-size: 9px;">STAFF</span>'
 
-        return format_html(html)
+        return mark_safe(html)
 
     role_badge.short_description = "Role"
     role_badge.admin_order_field = "role"
@@ -350,7 +352,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         if obj.is_deleted:
             html += ' <span style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 9px;">🗑️ DEL</span>'
 
-        return format_html(html)
+        return mark_safe(html)
 
     status_indicators.short_description = "Status"
 
@@ -364,7 +366,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
                 obj.id,
                 count
             )
-        return format_html('<span style="color: #9ca3af; font-size: 11px;">No posts</span>')
+        return mark_safe('<span style="color: #9ca3af; font-size: 11px;">No posts</span>')
 
     posts_count.short_description = "Posts"
 
@@ -490,6 +492,6 @@ admin.site.unregister(Group)
 
 
 @admin.register(Group)
-class GroupAdmin(ModelAdmin):
+class GroupAdmin(BaseGroupAdmin, ModelAdmin):
     search_fields = ["name"]
     filter_horizontal = ["permissions"]

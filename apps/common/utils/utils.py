@@ -1,14 +1,14 @@
 import secrets
 import uuid
 
-from decouple import config
+from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.core.cache import cache
 from django.utils.text import slugify
 
-OTP_LEN = config("OTP_LEN", 6, cast=int)
-TTL_SECONDS = config("TTL_SECONDS", 300, cast=int)
-MAX_ATTEMPTS = config("MAX_ATTEMPTS", 5, cast=int)
+OTP_LEN = settings.OTP_LEN
+TTL_SECONDS = settings.TTL_SECONDS
+MAX_ATTEMPTS = settings.MAX_ATTEMPTS
 
 
 def _key(token: str) -> str:

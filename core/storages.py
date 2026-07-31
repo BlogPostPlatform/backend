@@ -1,26 +1,33 @@
-from boto3.s3.transfer import TransferConfig
 from django.conf import settings
+from django.core.files.storage import storages
 from storages.backends.s3boto3 import S3Boto3Storage
-
-S3_TRANSFER_CONFIG = TransferConfig(
-    max_concurrency=1,
-    use_threads=True,
-)
 
 
 class PublicMediaStorage(S3Boto3Storage):
-    bucket_name = settings.AWS_PUBLIC_BUCKET_NAME
-    # default_acl = "public-read"
-    file_overwrite = False
-    querystring_auth = False  # DO NOT sign URLs
-    transfer_config = S3_TRANSFER_CONFIG
+    """Public media backed by a bucket policy; objects never receive a public ACL."""
+
+    def __init__(self, **settings_override):
+        settings_override.setdefault("bucket_name", settings.AWS_PUBLIC_BUCKET_NAME)
+        settings_override.setdefault("location", settings.AWS_PUBLIC_MEDIA_LOCATION)
+        settings_override.setdefault("custom_domain", settings.AWS_PUBLIC_CUSTOM_DOMAIN)
+        settings_override.setdefault("default_acl", None)
+        settings_override.setdefault("file_overwrite", False)
+        settings_override.setdefault("querystring_auth", False)
+        super().__init__(**settings_override)
 
 
 class PrivateMediaStorage(S3Boto3Storage):
-    bucket_name = settings.AWS_PRIVATE_BUCKET_NAME
-    default_acl = "private"
-    file_overwrite = False
-    querystring_auth = True  # SIGN the URLs
+    """Private media with short-lived, signed URLs."""
+
+    def __init__(self, **settings_override):
+        settings_override.setdefault("bucket_name", settings.AWS_PRIVATE_BUCKET_NAME)
+        settings_override.setdefault("location", settings.AWS_PRIVATE_MEDIA_LOCATION)
+        settings_override.setdefault("custom_domain", None)
+        settings_override.setdefault("default_acl", None)
+        settings_override.setdefault("file_overwrite", False)
+        settings_override.setdefault("querystring_auth", True)
+        settings_override.setdefault("querystring_expire", settings.AWS_QUERYSTRING_EXPIRE)
+        super().__init__(**settings_override)
 
 
 def select_storage():
@@ -29,9 +36,4 @@ def select_storage():
     Evaluated lazily at runtime so test settings (InMemoryStorage) take effect
     instead of always instantiating the S3 backend at class-definition time.
     """
-    default_backend = settings.STORAGES.get("default", {}).get("BACKEND", "")
-    if default_backend == "django.core.files.storage.InMemoryStorage":
-        from django.core.files.storage import InMemoryStorage
-
-        return InMemoryStorage()
-    return PublicMediaStorage()
+    return storages["default"]
