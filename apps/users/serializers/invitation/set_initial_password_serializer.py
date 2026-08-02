@@ -1,4 +1,6 @@
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
@@ -40,13 +42,17 @@ class SetInitialPasswordSerializer(serializers.Serializer):
         if not getattr(user, "must_set_password", False):
             raise serializers.ValidationError("Password already set")
 
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"new_password": list(e.messages)})
+
         attrs["user"] = user
         return attrs
 
     def create(self, validated_data):
         user = validated_data["user"]
         new_password = validated_data["new_password"]
-        # validate_password(new_password)
         user.set_password(new_password)
         user.is_active = True
 

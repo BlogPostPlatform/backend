@@ -36,7 +36,7 @@ PASSWORD_HASHERS = [
 # ============================================================================
 # Django REST Framework – no throttling during tests
 # ============================================================================
-REST_FRAMEWORK = copy.deepcopy(REST_FRAMEWORK)  # noqa: F405
+REST_FRAMEWORK = copy.deepcopy(REST_FRAMEWORK)  # noqa: F405  # nosemgrep: python.django.security.audit.django-rest-framework.missing-throttle-config.missing-throttle-config
 REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {}
 

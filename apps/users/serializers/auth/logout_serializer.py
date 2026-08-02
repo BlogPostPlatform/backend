@@ -17,16 +17,14 @@ class LogoutSerializer(serializers.Serializer):
 
         try:
             token = RefreshToken(refresh_token)
-        except Exception as e:
-            logger.warning("users.logout. Invalid refresh token: %s", e)
+        except Exception:
+            logger.warning("users.logout. Invalid refresh token")
             raise serializers.ValidationError("Invalid refresh token")
 
         request_user_id = self.context["request"].user.pk
         token_user_id = token["user_id"]
         if token_user_id and request_user_id and (str(token_user_id) != str(request_user_id)):
-            logger.warning(
-                "users.logout. Refresh token does not belong to user id=%s", request_user_id
-            )
+            logger.warning("users.logout. Refresh token does not belong to the request user")
             raise serializers.ValidationError("This refresh token does not belong to you")
 
         token.blacklist()

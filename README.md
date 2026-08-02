@@ -594,7 +594,7 @@ celery -A core beat -l info
 - `POST /mark-as-read/` - Mark notifications as read
 - `POST /delete-notifications/` - Delete notifications
 
-#### **WebSocket** (`ws://`)
+#### **WebSocket** (`wss://`)
 - `ws/notifications/comments/?token={jwt}` - Real-time notifications
 
 ---

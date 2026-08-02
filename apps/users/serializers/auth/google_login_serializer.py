@@ -21,12 +21,8 @@ class GoogleLoginSerializer(serializers.Serializer):
             return idinfo
         except ValueError:
             raise serializers.ValidationError("Invalid Google token")
-        except Exception as e:
-            logger.error(
-                "[GOOGLE_AUTH] Unexpected error during token validation - error=%s",
-                str(e),
-                exc_info=True,
-            )
+        except Exception:
+            logger.exception("[GOOGLE_AUTH] Unexpected error during token validation")
             raise serializers.ValidationError("Authentication failed")
 
     def create(self, validated_data):
