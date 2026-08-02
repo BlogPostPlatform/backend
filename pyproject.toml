@@ -48,8 +48,4 @@ dev = [
 package = false
 required-version = "==0.11.32"
 exclude-newer = "7 days"
-exclude-newer-package = {
-    django-unfold = false,
-    drf-nested-routers = false,
-    djangorestframework-stubs = false
-}
+exclude-newer-package = { django-unfold = false, drf-nested-routers = false, djangorestframework-stubs = false }
