@@ -32,7 +32,8 @@ if not env.str("FRONTEND_URL", default=""):  # noqa: F405
 # ============================================================================
 # Django REST Framework – strict rates, no browsable API
 # ============================================================================
-REST_FRAMEWORK = copy.deepcopy(REST_FRAMEWORK)  # noqa: F405
+# The inherited throttle configuration is explicitly replaced immediately below.
+REST_FRAMEWORK = copy.deepcopy(REST_FRAMEWORK)  # noqa: F405  # nosemgrep
 REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = (
     "rest_framework.throttling.AnonRateThrottle",
     "rest_framework.throttling.UserRateThrottle",

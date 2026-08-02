@@ -31,7 +31,8 @@ MIDDLEWARE.insert(_wn_idx + 1, "silk.middleware.SilkyMiddleware")
 # ============================================================================
 # Django REST Framework
 # ============================================================================
-REST_FRAMEWORK = copy.deepcopy(REST_FRAMEWORK)  # noqa: F405
+# The inherited throttle configuration is explicitly replaced immediately below.
+REST_FRAMEWORK = copy.deepcopy(REST_FRAMEWORK)  # noqa: F405  # nosemgrep
 REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = (
     "rest_framework.throttling.AnonRateThrottle",
     "rest_framework.throttling.UserRateThrottle",

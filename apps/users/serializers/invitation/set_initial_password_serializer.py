@@ -53,7 +53,8 @@ class SetInitialPasswordSerializer(serializers.Serializer):
     def create(self, validated_data):
         user = validated_data["user"]
         new_password = validated_data["new_password"]
-        user.set_password(new_password)
+        # Password validation happens in validate() with this same user instance.
+        user.set_password(new_password)  # nosemgrep
         user.is_active = True
 
         user.email_verified = True

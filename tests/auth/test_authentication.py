@@ -87,14 +87,14 @@ class TestLogin:
         """
         user = user_factory.create(
             email="unverified@example.com",
-            password="password123",
+            password="Quartz!River92Orbit",
             email_verified=False,
             must_set_password=False
         )
 
         response = api_client.post(self.URL, {
             "email": "unverified@example.com",
-            "password": "password123"
+            "password": "Quartz!River92Orbit"
         })
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -108,14 +108,14 @@ class TestLogin:
         """
         user = user_factory.create(
             email="nopass@example.com",
-            password="temppass",
+            password="Copper!Falcon73Mint",
             email_verified=True,
             must_set_password=True
         )
 
         response = api_client.post(self.URL, {
             "email": "nopass@example.com",
-            "password": "temppass"
+            "password": "Copper!Falcon73Mint"
         })
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -128,7 +128,7 @@ class TestLogin:
         """
         user = user_factory.create(
             email="inactive@example.com",
-            password="password123",
+            password="Nimbus!Cedar64Wave",
             email_verified=True,
             must_set_password=False,
             is_active=False
@@ -136,7 +136,7 @@ class TestLogin:
 
         response = api_client.post(self.URL, {
             "email": "inactive@example.com",
-            "password": "password123"
+            "password": "Nimbus!Cedar64Wave"
         })
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -167,7 +167,7 @@ class TestLogin:
         """
         user = user_factory.create(
             email="mfa@example.com",
-            password="password123",
+            password="Velvet!Comet85Stone",
             email_verified=True,
             must_set_password=False,
             mfa_enabled=True
@@ -175,7 +175,7 @@ class TestLogin:
 
         response = api_client.post(self.URL, {
             "email": "mfa@example.com",
-            "password": "password123"
+            "password": "Velvet!Comet85Stone"
         })
 
         assert response.status_code == status.HTTP_200_OK
