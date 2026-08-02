@@ -32,6 +32,11 @@ MIDDLEWARE.insert(_wn_idx + 1, "silk.middleware.SilkyMiddleware")
 # Django REST Framework
 # ============================================================================
 REST_FRAMEWORK = copy.deepcopy(REST_FRAMEWORK)  # noqa: F405
+REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = (
+    "rest_framework.throttling.AnonRateThrottle",
+    "rest_framework.throttling.UserRateThrottle",
+    "rest_framework.throttling.ScopedRateThrottle",
+)
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
     "anon": "1500/min",
     "user": "30000/min",

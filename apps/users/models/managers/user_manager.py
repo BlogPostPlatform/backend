@@ -1,5 +1,6 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import Group
+from django.contrib.auth.password_validation import validate_password
 
 from apps.users.models.profile import UserProfile
 from apps.users.models.user import Role
@@ -11,7 +12,11 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        if password:
+            validate_password(password, user=user)
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self._db)
         UserProfile.objects.get_or_create(user=user)
         return user

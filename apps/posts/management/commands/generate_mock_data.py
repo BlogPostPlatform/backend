@@ -23,6 +23,7 @@ Notes:
 import random
 from datetime import timedelta
 
+from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -155,8 +156,8 @@ class Command(BaseCommand):
             if created_flag:
                 # set password using manager's create_user would also create profile, but
                 # get_or_create above bypasses create_user; set_password and save.
-                user.set_password("password123")
-                user.save()
+                user.password = make_password("password123")
+                user.save(update_fields=["password"])
             users.append(user)
 
         created["users"] = len(users)

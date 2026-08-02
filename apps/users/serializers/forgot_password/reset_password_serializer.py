@@ -1,7 +1,9 @@
 import logging
 from typing import Any
 
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
@@ -40,6 +42,10 @@ class ResetPasswordSerializer(serializers.Serializer):
             logger.warning("users.reset_password... user provided invalid token.")
             raise serializers.ValidationError("Invalid or expired token.")
 
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"new_password": list(e.messages)})
         user.set_password(new_password)
         user.must_set_password = False
         user.email_verified = True

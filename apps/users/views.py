@@ -137,7 +137,7 @@ class AuthViewSet(viewsets.GenericViewSet):
         user = serializer.save()
 
         refresh = RefreshToken.for_user(user)
-        logger.info("[AUTH] Initial password set successfully - user_id=%s", user.pk)
+        logger.info("[AUTH] Initial password set successfully")
         return Response(
             {
                 "message": "Password set successfully. You can now log in.",
