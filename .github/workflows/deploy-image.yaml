@@ -1,0 +1,24 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: Fully qualified image name produced by the build job
+        required: true
+        type: string
+      digest:
+        description: Immutable digest produced by the build job
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deployment placeholder
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment intentionally deferred
+        run: echo "Deployment architecture will be implemented separately."

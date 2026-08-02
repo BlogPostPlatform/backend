@@ -1,0 +1,29 @@
+name: Test
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: Pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
+        with:
+          enable-cache: true
+
+      - name: Install Python and dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Run Django system checks
+        run: uv run --frozen python manage.py check --settings=core.settings.test
+
+      - name: Run tests
+        run: uv run --frozen pytest

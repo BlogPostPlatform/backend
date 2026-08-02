@@ -1,0 +1,55 @@
+name: Verify
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy:
+    name: Trivy source scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Scan dependencies and configuration
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.171.0
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Scan source code
+        run: semgrep scan --config auto --error .
+
+  secrets:
+    name: Gitleaks secret detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out complete history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Scan Git history for secrets
+        run: |
+          docker run --rm \
+            --volume "$PWD:/repo:ro" \
+            --entrypoint /bin/sh \
+            ghcr.io/gitleaks/gitleaks@sha256:aa036a2f4bdfe3cc3c55fa4326308efabb4a6be498c883c864fd1d0d5585438a \
+            -c 'git config --global --add safe.directory /repo && gitleaks git --redact --verbose /repo'

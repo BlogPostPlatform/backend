@@ -1,0 +1,97 @@
+name: Cleanup
+
+on:
+  workflow_call:
+    inputs:
+      package-name:
+        description: GitHub Container Registry package name
+        required: true
+        type: string
+      keep-tag:
+        description: Exact tag identifying the newly built package version
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  cleanup:
+    name: Remove superseded GHCR images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete every package version except the new build
+        uses: actions/github-script@v9
+        env:
+          PACKAGE_NAME: ${{ inputs.package-name }}
+          KEEP_TAG: ${{ inputs.keep-tag }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const packageName = process.env.PACKAGE_NAME;
+            const keepTag = process.env.KEEP_TAG;
+            const ownerType = context.payload.repository?.owner?.type;
+            const isOrganization = ownerType === "Organization";
+
+            async function listVersions() {
+              const endpoint = isOrganization
+                ? github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg
+                : github.rest.packages.getAllPackageVersionsForPackageOwnedByUser;
+              const ownerParameter = isOrganization ? { org: owner } : { username: owner };
+
+              return github.paginate(endpoint, {
+                ...ownerParameter,
+                package_type: "container",
+                package_name: packageName,
+                per_page: 100,
+              });
+            }
+
+            let versions = [];
+            let keepers = [];
+
+            // GHCR can take a few seconds to expose a freshly pushed version via the API.
+            for (let attempt = 1; attempt <= 6; attempt += 1) {
+              versions = await listVersions();
+              keepers = versions.filter((version) =>
+                (version.metadata?.container?.tags ?? []).includes(keepTag),
+              );
+
+              if (keepers.length === 1) break;
+              if (attempt < 6) await new Promise((resolve) => setTimeout(resolve, 10000));
+            }
+
+            if (keepers.length !== 1) {
+              core.setFailed(
+                `Expected exactly one ${packageName} version tagged ${keepTag}; ` +
+                `found ${keepers.length}. No versions were deleted.`,
+              );
+              return;
+            }
+
+            const keepVersionId = keepers[0].id;
+            const obsoleteVersions = versions.filter(
+              (version) => version.id !== keepVersionId,
+            );
+
+            for (const version of obsoleteVersions) {
+              const endpoint = isOrganization
+                ? github.rest.packages.deletePackageVersionForOrg
+                : github.rest.packages.deletePackageVersionForUser;
+              const ownerParameter = isOrganization ? { org: owner } : { username: owner };
+
+              await endpoint({
+                ...ownerParameter,
+                package_type: "container",
+                package_name: packageName,
+                package_version_id: version.id,
+              });
+              core.info(`Deleted package version ${version.id}.`);
+            }
+
+            core.info(
+              `Kept package version ${keepVersionId} tagged ${keepTag}; ` +
+              `deleted ${obsoleteVersions.length} older version(s).`,
+            );
