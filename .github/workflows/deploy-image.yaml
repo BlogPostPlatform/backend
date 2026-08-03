@@ -3,22 +3,149 @@ name: Deploy
 on:
   workflow_call:
     inputs:
-      image:
-        description: Fully qualified image name produced by the build job
+      target_environment:
+        description: Cluster-config overlay to update
         required: true
         type: string
-      digest:
-        description: Immutable digest produced by the build job
+      tag:
+        description: Immutable image tag produced by the build job
         required: true
         type: string
+    secrets:
+      CLUSTER_CONFIG_TOKEN:
+        description: Fine-grained token with cluster-config contents write access
+        required: true
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    name: Deployment placeholder
+    name: Update ${{ inputs.target_environment }} image tag
     runs-on: ubuntu-latest
+    environment: ${{ inputs.target_environment }}
     steps:
-      - name: Deployment intentionally deferred
-        run: echo "Deployment architecture will be implemented separately."
+      - name: Update cluster-config overlay
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          CLUSTER_CONFIG_REPOSITORY: ${{ github.repository_owner }}/cluster-config
+          CLUSTER_CONFIG_REF: main
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+          IMAGE_TAG: ${{ inputs.tag }}
+        with:
+          github-token: ${{ secrets.CLUSTER_CONFIG_TOKEN }}
+          script: |
+            const repository = process.env.CLUSTER_CONFIG_REPOSITORY;
+            const branch = process.env.CLUSTER_CONFIG_REF;
+            const targetEnvironment = process.env.TARGET_ENVIRONMENT;
+            const imageTag = process.env.IMAGE_TAG;
+
+            if (!repository || !branch || !targetEnvironment || !imageTag) {
+              core.setFailed("The deployment inputs are incomplete.");
+              return;
+            }
+
+            if (!new Set(["dev", "stage", "prod"]).has(targetEnvironment)) {
+              core.setFailed(`Unsupported cluster-config overlay: ${targetEnvironment}`);
+              return;
+            }
+
+            if (!/^sha-[0-9a-f]{40}$/.test(imageTag)) {
+              core.setFailed(`Refusing unexpected image tag: ${imageTag}`);
+              return;
+            }
+
+            const repositoryParts = repository.split("/");
+            if (repositoryParts.length !== 2 || repositoryParts.some((part) => !part)) {
+              core.setFailed(`Invalid cluster-config repository: ${repository}`);
+              return;
+            }
+
+            const [owner, repo] = repositoryParts;
+            const path = `backend/overlays/${targetEnvironment}/kustomization.yaml`;
+            const response = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path,
+              ref: branch,
+            });
+
+            if (Array.isArray(response.data) || response.data.type !== "file") {
+              core.setFailed(`Expected ${path} to be a file.`);
+              return;
+            }
+
+            const source = Buffer.from(response.data.content, "base64").toString("utf8");
+            const newline = source.includes("\r\n") ? "\r\n" : "\n";
+            const lines = source.split(/\r?\n/);
+            const imagesSections = lines.reduce(
+              (count, line) => count + Number(/^images:\s*$/.test(line)),
+              0,
+            );
+
+            if (imagesSections !== 1) {
+              core.setFailed(`Expected exactly one images section in ${path}.`);
+              return;
+            }
+
+            let insideImages = false;
+            let currentImage = null;
+            const tagMatches = [];
+
+            for (let index = 0; index < lines.length; index += 1) {
+              const line = lines[index];
+
+              if (/^images:\s*$/.test(line)) {
+                insideImages = true;
+                continue;
+              }
+
+              if (insideImages && /^[A-Za-z_][A-Za-z0-9_-]*:\s*/.test(line)) {
+                insideImages = false;
+                currentImage = null;
+              }
+
+              if (!insideImages) continue;
+
+              const imageMatch = line.match(/^\s*-\s+name:\s*(\S+)\s*$/);
+              if (imageMatch) {
+                currentImage = imageMatch[1];
+                continue;
+              }
+
+              if (currentImage !== "backend-image") continue;
+
+              const tagMatch = line.match(/^(\s*newTag:\s*)(\S+)(\s*(?:#.*)?)$/);
+              if (tagMatch) {
+                tagMatches.push({ index, prefix: tagMatch[1], oldTag: tagMatch[2], suffix: tagMatch[3] });
+              }
+            }
+
+            if (tagMatches.length !== 1) {
+              core.setFailed(
+                `Expected exactly one newTag for backend-image in ${path}; ` +
+                `found ${tagMatches.length}.`,
+              );
+              return;
+            }
+
+            const match = tagMatches[0];
+            if (match.oldTag === imageTag) {
+              core.notice(`${path} already references ${imageTag}; no commit was created.`);
+              return;
+            }
+
+            lines[match.index] = `${match.prefix}${imageTag}${match.suffix}`;
+            const updatedSource = lines.join(newline);
+
+            await github.rest.repos.createOrUpdateFileContents({
+              owner,
+              repo,
+              path,
+              branch,
+              message: `deploy(backend): update ${targetEnvironment} to ${imageTag}`,
+              content: Buffer.from(updatedSource, "utf8").toString("base64"),
+              sha: response.data.sha,
+            });
+
+            core.info(`Updated ${repository}/${path} from ${match.oldTag} to ${imageTag}.`);

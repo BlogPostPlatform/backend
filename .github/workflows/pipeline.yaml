@@ -59,8 +59,10 @@ jobs:
       contents: read
     uses: ./.github/workflows/deploy-image.yaml
     with:
-      image: ${{ needs.build.outputs.image }}
-      digest: ${{ needs.build.outputs.digest }}
+      target_environment: dev
+      tag: ${{ needs.build.outputs.tag }}
+    secrets:
+      CLUSTER_CONFIG_TOKEN: ${{ secrets.CLUSTER_CONFIG_TOKEN }}
 
   cleanup:
     name: Cleanup
