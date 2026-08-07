@@ -21,7 +21,14 @@ jobs:
     name: Remove superseded GHCR images
     runs-on: ubuntu-latest
     steps:
-      - name: Delete every package version except the new build
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete superseded tagged package versions
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           PACKAGE_NAME: ${{ inputs.package-name }}
@@ -72,8 +79,17 @@ jobs:
             }
 
             const keepVersionId = keepers[0].id;
+            // Buildx publishes an OCI index whose platform image and provenance
+            // attestations are separate, untagged package versions. Deleting
+            // those versions leaves the tagged index pointing at missing
+            // manifests, so cleanup must only target tagged root versions.
             const obsoleteVersions = versions.filter(
-              (version) => version.id !== keepVersionId,
+              (version) =>
+                version.id !== keepVersionId &&
+                (version.metadata?.container?.tags ?? []).length > 0,
+            );
+            const retainedUntaggedVersions = versions.filter(
+              (version) => (version.metadata?.container?.tags ?? []).length === 0,
             );
 
             for (const version of obsoleteVersions) {
@@ -93,5 +109,16 @@ jobs:
 
             core.info(
               `Kept package version ${keepVersionId} tagged ${keepTag}; ` +
-              `deleted ${obsoleteVersions.length} older version(s).`,
+              `deleted ${obsoleteVersions.length} older tagged version(s); ` +
+              `retained ${retainedUntaggedVersions.length} OCI child manifest(s).`,
             );
+
+      - name: Verify retained image is pullable on linux/amd64
+        shell: bash
+        env:
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE_NAME: ${{ inputs.package-name }}
+          KEEP_TAG: ${{ inputs.keep-tag }}
+        run: |
+          image="ghcr.io/${OWNER,,}/${PACKAGE_NAME}:${KEEP_TAG}"
+          docker pull --platform linux/amd64 "$image"
