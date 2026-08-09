@@ -149,11 +149,11 @@ ASGI_APPLICATION = "core.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env.str("POSTGRES_DB", default="blog"),
-        "USER": env.str("POSTGRES_USER", default="postgres"),
-        "PASSWORD": env.str("POSTGRES_PASSWORD", default="postgres"),
-        "HOST": env.str("POSTGRES_HOST", default="localhost"),
-        "PORT": env.int("POSTGRES_PORT", default=5432),
+        "NAME": env.str("DATABASE_NAME", default="blog"),
+        "USER": env.str("DATABASE_USER", default="postgres"),
+        "PASSWORD": env.str("DATABASE_PASSWORD", default="postgres"),
+        "HOST": env.str("DATABASE_HOST", default="localhost"),
+        "PORT": env.int("DATABASE_PORT", default=5432),
     },
 }
 
