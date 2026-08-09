@@ -70,6 +70,8 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
+          build-args: |
+            INSTALL_DEV_DEPENDENCIES=true
           push: ${{ inputs.push }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
