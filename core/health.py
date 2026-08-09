@@ -47,7 +47,8 @@ def readiness_probe(request):
     # ---------------------
 
     try:
-        connections["default"].cursor()
+        with connections["default"].cursor():
+            pass
         checks["database"] = "ok"
     except OperationalError:
         checks["database"] = "failed"
@@ -57,8 +58,22 @@ def readiness_probe(request):
     # ---------------------
 
     try:
-        r = redis.from_url(settings.REDIS_URL)
-        r.ping()
+        redis_client = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            password=settings.REDIS_PASSWORD or None,
+        )
+        redis_client.ping()
         checks["redis"] = "ok"
     except Exception:
         checks["redis"] = "failed"
+
+    is_ready = all(check == "ok" for check in checks.values())
+
+    return JsonResponse(
+        {
+            "status": "ready" if is_ready else "not_ready",
+            "checks": checks,
+        },
+        status=200 if is_ready else 503,
+    )
