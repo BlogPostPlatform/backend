@@ -22,14 +22,21 @@ env = environ.Env()
 
 IN_K8S = "KUBERNETES_SERVICE_HOST" in os.environ
 
-if not IN_K8S:
-    # Try multiple common .env file names for local development
+if IN_K8S:
+    env_file = Path("/vault/secrets/backend.env")
+
+    if not env_file.exists():
+        raise ImproperlyConfigured(f"Vault secrets file does not exist: {env_file}")
+    env.read_env(str(env_file))
+else:
     env_file = BASE_DIR / ".env"
+
     if env_file.exists():
         env.read_env(str(env_file))
     elif (BASE_DIR / ".env.example").exists():
         env.read_env(str(BASE_DIR / ".env.example"))
-elif "DJANGO_ENV" not in os.environ:
+
+if "DJANGO_ENV" not in os.environ:
     raise ImproperlyConfigured("DJANGO_ENV must be set explicitly in Kubernetes.")
 
 # ============================================================================
