@@ -198,7 +198,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # ============================================================================
 # AWS / S3 – only used when USE_S3=True in .env
 # ============================================================================
-USE_S3 = env.bool("USE_S3", False)
+USE_S3 = env.bool("USE_S3", False) and DJANGO_ENV != "test"
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -225,7 +225,7 @@ if USE_S3:
     if missing:
         raise ImproperlyConfigured(f"USE_S3 is enabled but missing env vars: {missing}")
 
-    AWS_S3_VERIFY = env.str("AWS_S3_VERIFY", "true").lower() in ("1", "true", "yes")
+    AWS_S3_VERIFY = env.bool("AWS_S3_VERIFY", default=True)
     AWS_QUERYSTRING_AUTH = env.bool("AWS_QUERYSTRING_AUTH", default=True)
     AWS_QUERYSTRING_EXPIRE = env.int("AWS_QUERYSTRING_EXPIRE", default=3600)
     AWS_S3_USE_SSL = False
