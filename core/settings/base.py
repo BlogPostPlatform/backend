@@ -188,7 +188,7 @@ LANGUAGES = [
 # ============================================================================
 # Static & Media files
 # ============================================================================
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
@@ -198,139 +198,51 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # ============================================================================
 # AWS / S3 – only used when USE_S3=True in .env
 # ============================================================================
-USE_S3 = env.bool("USE_S3", default=False) and DJANGO_ENV != "test"
-
-AWS_ACCESS_KEY_ID = env.str("AWS_ACCESS_KEY_ID", default="")
-AWS_SECRET_ACCESS_KEY = env.str("AWS_SECRET_ACCESS_KEY", default="")
-AWS_SESSION_TOKEN = env.str("AWS_SESSION_TOKEN", default="")
-AWS_S3_REGION_NAME = env.str("AWS_S3_REGION_NAME", default="")
-AWS_S3_ENDPOINT_URL = env.str("AWS_S3_ENDPOINT_URL", default="") or None
-AWS_S3_CUSTOM_DOMAIN = env.str("AWS_S3_CUSTOM_DOMAIN", default="") or None
-AWS_S3_ADDRESSING_STYLE = env.str("AWS_S3_ADDRESSING_STYLE", default="") or None
-AWS_S3_SIGNATURE_VERSION = env.str("AWS_S3_SIGNATURE_VERSION", default="s3v4")
-AWS_S3_USE_SSL = env.bool("AWS_S3_USE_SSL", default=True)
-AWS_S3_VERIFY = env.bool("AWS_S3_VERIFY", default=True)
-AWS_S3_USE_THREADS = env.bool("AWS_S3_USE_THREADS", default=True)
-AWS_S3_MAX_MEMORY_SIZE = env.int("AWS_S3_MAX_MEMORY_SIZE", default=10 * 1024 * 1024)
-AWS_QUERYSTRING_EXPIRE = env.int("AWS_QUERYSTRING_EXPIRE", default=900)
-
-AWS_PUBLIC_BUCKET_NAME = env.str("AWS_PUBLIC_BUCKET_NAME", default="")
-AWS_PRIVATE_BUCKET_NAME = env.str("AWS_PRIVATE_BUCKET_NAME", default="")
-AWS_STATIC_BUCKET_NAME = env.str("AWS_STATIC_BUCKET_NAME", default="")
-AWS_PUBLIC_CUSTOM_DOMAIN = env.str("AWS_PUBLIC_CUSTOM_DOMAIN", default=AWS_S3_CUSTOM_DOMAIN) or None
-AWS_STATIC_CUSTOM_DOMAIN = env.str("AWS_STATIC_CUSTOM_DOMAIN", default=AWS_S3_CUSTOM_DOMAIN) or None
-AWS_PUBLIC_MEDIA_LOCATION = env.str("AWS_PUBLIC_MEDIA_LOCATION", default="").strip("/")
-AWS_PRIVATE_MEDIA_LOCATION = env.str("AWS_PRIVATE_MEDIA_LOCATION", default="").strip("/")
-AWS_STATIC_LOCATION = env.str("AWS_STATIC_LOCATION", default="static").strip("/")
-
-AWS_PUBLIC_OBJECT_PARAMETERS = env.json(
-    "AWS_PUBLIC_OBJECT_PARAMETERS",
-    default={"CacheControl": "max-age=86400"},
-)
-AWS_PRIVATE_OBJECT_PARAMETERS = env.json("AWS_PRIVATE_OBJECT_PARAMETERS", default={})
-AWS_STATIC_OBJECT_PARAMETERS = env.json(
-    "AWS_STATIC_OBJECT_PARAMETERS",
-    default={"CacheControl": "max-age=31536000, immutable"},
-)
-
-AWS_DEFAULT_ACL = None
-AWS_S3_FILE_OVERWRITE = False
-USE_S3_FOR_STATIC = USE_S3 and env.bool("USE_S3_FOR_STATIC", default=False)
+USE_S3 = env.bool("USE_S3", False)
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
 }
 
 if USE_S3:
-    if bool(AWS_ACCESS_KEY_ID) != bool(AWS_SECRET_ACCESS_KEY):
-        raise ImproperlyConfigured(
-            "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must either both be set or both be "
-            "omitted so the AWS credential provider chain can be used."
-        )
+    INSTALLED_APPS += ["storages"]
+
+    AWS_ACCESS_KEY_ID = env.str("AWS_ACCESS_KEY_ID", default="")
+    AWS_SECRET_ACCESS_KEY = env.str("AWS_SECRET_ACCESS_KEY", default="")
+    AWS_STORAGE_BUCKET_NAME = env.str("AWS_STORAGE_BUCKET_NAME", default="")
+    AWS_S3_ENDPOINT_URL = env.str("AWS_S3_ENDPOINT_URL", default="")
 
     required = {
-        "AWS_S3_REGION_NAME": AWS_S3_REGION_NAME,
-        "AWS_PUBLIC_BUCKET_NAME": AWS_PUBLIC_BUCKET_NAME,
-        "AWS_PRIVATE_BUCKET_NAME": AWS_PRIVATE_BUCKET_NAME,
+        "AWS_ACCESS_KEY_ID": AWS_ACCESS_KEY_ID,
+        "AWS_SECRET_ACCESS_KEY": AWS_SECRET_ACCESS_KEY,
+        "AWS_STORAGE_BUCKET_NAME": AWS_STORAGE_BUCKET_NAME,
+        "AWS_S3_ENDPOINT_URL": AWS_S3_ENDPOINT_URL,
     }
-    if USE_S3_FOR_STATIC:
-        required["AWS_STATIC_BUCKET_NAME"] = AWS_STATIC_BUCKET_NAME
-
-    missing = [name for name, value in required.items() if not value]
+    missing = [k for k, v in required.items() if not v]
     if missing:
-        raise ImproperlyConfigured(
-            f"S3 storage is enabled but required environment variables are missing: {missing}"
-        )
+        raise ImproperlyConfigured(f"USE_S3 is enabled but missing env vars: {missing}")
 
-    if AWS_S3_ENDPOINT_URL and not AWS_S3_ENDPOINT_URL.startswith(("http://", "https://")):
-        raise ImproperlyConfigured("AWS_S3_ENDPOINT_URL must start with http:// or https://.")
-    if AWS_S3_ADDRESSING_STYLE not in {None, "auto", "path", "virtual"}:
-        raise ImproperlyConfigured("AWS_S3_ADDRESSING_STYLE must be one of: auto, path, virtual.")
-    for _domain_name, _domain in {
-        "AWS_PUBLIC_CUSTOM_DOMAIN": AWS_PUBLIC_CUSTOM_DOMAIN,
-        "AWS_STATIC_CUSTOM_DOMAIN": AWS_STATIC_CUSTOM_DOMAIN,
-    }.items():
-        if _domain and "://" in _domain:
-            raise ImproperlyConfigured(
-                f"{_domain_name} must be a hostname without an http:// or https:// prefix."
-            )
+    AWS_S3_VERIFY = env.str("AWS_S3_VERIFY", "true").lower() in ("1", "true", "yes")
+    AWS_QUERYSTRING_AUTH = env.bool("AWS_QUERYSTRING_AUTH", default=True)
+    AWS_QUERYSTRING_EXPIRE = env.int("AWS_QUERYSTRING_EXPIRE", default=3600)
+    AWS_S3_USE_SSL = False
+    AWS_DEFAULT_ACL = None
 
-    _s3_common_options = {
-        "region_name": AWS_S3_REGION_NAME,
-        "endpoint_url": AWS_S3_ENDPOINT_URL,
-        "addressing_style": AWS_S3_ADDRESSING_STYLE,
-        "signature_version": AWS_S3_SIGNATURE_VERSION,
-        "use_ssl": AWS_S3_USE_SSL,
-        "verify": AWS_S3_VERIFY,
-        "use_threads": AWS_S3_USE_THREADS,
-        "max_memory_size": AWS_S3_MAX_MEMORY_SIZE,
-        "file_overwrite": False,
-        "default_acl": None,
-    }
-    if AWS_ACCESS_KEY_ID:
-        _s3_common_options.update(
-            {"access_key": AWS_ACCESS_KEY_ID, "secret_key": AWS_SECRET_ACCESS_KEY}
-        )
-    if AWS_SESSION_TOKEN:
-        _s3_common_options["security_token"] = AWS_SESSION_TOKEN
-
+    # media -> S3
     STORAGES["default"] = {  # type: ignore
-        "BACKEND": "core.storages.PublicMediaStorage",
+        "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
-            **_s3_common_options,
-            "bucket_name": AWS_PUBLIC_BUCKET_NAME,
-            "location": AWS_PUBLIC_MEDIA_LOCATION,
-            "custom_domain": AWS_PUBLIC_CUSTOM_DOMAIN,
-            "querystring_auth": False,
-            "object_parameters": AWS_PUBLIC_OBJECT_PARAMETERS,
-        },
-    }
-    STORAGES["private"] = {  # type: ignore
-        "BACKEND": "core.storages.PrivateMediaStorage",
-        "OPTIONS": {
-            **_s3_common_options,
-            "bucket_name": AWS_PRIVATE_BUCKET_NAME,
-            "location": AWS_PRIVATE_MEDIA_LOCATION,
-            "custom_domain": None,
-            "querystring_auth": True,
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "endpoint_url": AWS_S3_ENDPOINT_URL,
+            "location": "media",
+            "verify": AWS_S3_VERIFY,
+            "querystring_auth": AWS_QUERYSTRING_AUTH,
             "querystring_expire": AWS_QUERYSTRING_EXPIRE,
-            "object_parameters": AWS_PRIVATE_OBJECT_PARAMETERS,
         },
     }
-
-    if USE_S3_FOR_STATIC:
-        STORAGES["staticfiles"] = {  # type: ignore
-            "BACKEND": "storages.backends.s3.S3Storage",
-            "OPTIONS": {
-                **_s3_common_options,
-                "bucket_name": AWS_STATIC_BUCKET_NAME,
-                "location": AWS_STATIC_LOCATION,
-                "custom_domain": AWS_STATIC_CUSTOM_DOMAIN,
-                "querystring_auth": False,
-                "object_parameters": AWS_STATIC_OBJECT_PARAMETERS,
-            },
-        }
 
 # ============================================================================
 # CORS / CSRF
