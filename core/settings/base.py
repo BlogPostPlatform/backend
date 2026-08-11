@@ -8,6 +8,7 @@ everything from here and override what they need.
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import quote_plus
 
 import environ
 from django.core.exceptions import ImproperlyConfigured
@@ -53,12 +54,6 @@ DJANGO_ENV = (
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 
-# ============================================================================
-# Infrastructure hosts
-# ============================================================================
-REDIS_HOST = env.str("REDIS_HOST", default="127.0.0.1")
-REDIS_PORT = env.int("REDIS_PORT", default=6379)
-REDIS_PASSWORD = env.str("REDIS_PASSWORD", "")
 
 # ============================================================================
 # Application definition
@@ -367,10 +362,21 @@ TTL_SECONDS = env.int("TTL_SECONDS", default=300)
 MAX_ATTEMPTS = env.int("MAX_ATTEMPTS", default=5)
 
 # ============================================================================
+# Infrastructure hosts
+# ============================================================================
+REDIS_HOST = env.str("REDIS_HOST", default="127.0.0.1")
+REDIS_PORT = env.int("REDIS_PORT", default=6379)
+REDIS_PASSWORD = env.str("REDIS_PASSWORD", "")
+
+pwd = quote_plus(REDIS_PASSWORD) if REDIS_PASSWORD else ""
+auth = f":{pwd}@" if pwd else ""
+REDIS_URL = f"redis://{auth}{REDIS_HOST}:{REDIS_PORT}"
+
+# ============================================================================
 # Celery
 # ============================================================================
-CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/2"
-CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/2"
+CELERY_BROKER_URL = f"{REDIS_URL}/2"
+CELERY_RESULT_BACKEND = f"{REDIS_URL}/2"
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -400,7 +406,7 @@ CELERY_BEAT_SCHEDULE = {}
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/3",
+        "LOCATION": f"{REDIS_URL}/3",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -414,7 +420,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(REDIS_HOST, int(REDIS_PORT))],
+            "hosts": [f"{REDIS_URL}/4"],
         },
     },
 }
