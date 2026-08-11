@@ -2,4 +2,6 @@
 set -eu
 
 echo "Starting Celery worker..."
-exec celery -A core worker --loglevel=info
+exec celery -A core worker \
+    --loglevel=info \
+    --hostname="celery@%h"
