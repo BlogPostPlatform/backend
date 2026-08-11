@@ -60,8 +60,10 @@ COPY --from=builder /opt/venv /opt/venv
 COPY . .
 RUN sed -i 's/\r$//' /app/entrypoints/*.sh && \
     chmod 0755 /app/entrypoints/*.sh && \
-    mkdir -p /app/staticfiles /app/media && \
-    chown -R app:app /app/staticfiles /app/media
+    mkdir -p /app/media && \
+    DJANGO_SETTINGS_MODULE=core.settings.base USE_S3=false \
+      python manage.py collectstatic --noinput && \
+    chown -R app:app /app/media
 
 USER app
 

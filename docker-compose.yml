@@ -75,7 +75,6 @@ services:
     environment:
       <<: *app-environment
     volumes:
-      - staticfiles:/app/staticfiles
       - media:/app/media
     ports:
       - "${WEB_PORT:-8000}:8000"
@@ -144,7 +143,6 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  staticfiles:
   media:
 
 networks:
